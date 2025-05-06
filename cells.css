@@ -1,0 +1,63 @@
+/* circles.css */
+
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #fdfdfd;
+    margin: 0;
+    padding: 20px;
+  }
+  
+  h1 {
+    margin-bottom: 10px;
+  }
+  
+  #controls {
+    margin-bottom: 15px;
+  }
+  
+  #controls label {
+    margin-right: 10px;
+  }
+  
+  #game-info span {
+    margin-left: 15px;
+    font-weight: bold;
+  }
+  
+  #game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+  }
+  
+  canvas {
+    border: 2px solid #aaa;
+    background-color: #9c9382;;
+    touch-action: none;
+  }
+  
+  .circle {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  
+  .circle.explode {
+    animation: explode 0.4s ease-out forwards;
+  }
+  
+  @keyframes explode {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.5);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(0.1);
+      opacity: 0;
+    }
+  }
+  
