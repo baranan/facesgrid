@@ -13,12 +13,20 @@ body {
   }
   
   #controls {
-    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   
   #controls label {
-    margin-right: 10px;
+    display: block;
+    margin: 5px 0;
   }
+  
+  #game-info {
+    margin-top: 10px;
+  }
+  
   
   #game-info span {
     margin-left: 15px;

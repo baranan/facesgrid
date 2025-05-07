@@ -43,6 +43,9 @@ function startGame() {
     gridSize = parseInt(document.getElementById('grid-size').value);
     movesLeft = parseInt(document.getElementById('moves-limit').value);
     timeLeft = parseInt(document.getElementById('time-limit').value);
+
+    document.getElementById('controls').style.display = 'none';
+
     total = 0;
     score = 0;
     moves = 0;
@@ -558,8 +561,9 @@ function drawStaticBoard() {
 
 function updateInfo() {
     document.getElementById('moves-left').textContent = movesLeft > 0 ? `Moves Left: ${movesLeft}` : '';
-    document.getElementById('time-left').textContent = timeLeft > 0 ? `Time Left: ${timeLeft}s` : '';
-    document.getElementById('score').textContent = `score: ${score}`;
+    document.getElementById('score').textContent = `Score: ${score}`;
+    const mean = moves > 0 ? (score / moves).toFixed(2) : '0';
+    document.getElementById('mean-score').textContent = `Mean Score: ${mean}`;
 }
 
 function endGame() {
@@ -570,7 +574,12 @@ function endGame() {
     canvas.removeEventListener('touchstart', handleStart);
     canvas.removeEventListener('touchmove', handleMove);
     canvas.removeEventListener('touchend', handleEnd);
-    alert(`Game over! Your total: ${total}`);
+
+    // Hide canvas and show final score
+    document.getElementById('game-container').innerHTML = `<h2>Final Score: ${score}</h2>`;
+
+    // Show controls again
+    document.getElementById('controls').style.display = 'block';
 }
 
 document.getElementById('start-game').addEventListener('click', () => {
