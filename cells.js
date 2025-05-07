@@ -3,11 +3,9 @@ const ctx = canvas.getContext('2d');
 
 let gridSize = 5;
 let movesLeft = 0;
-let timeLeft = 0;
 let total = 0;
 let score = 0;
 let moves = 0;
-let timer;
 let cellSize;
 let board = [];
 let path = [];
@@ -42,7 +40,6 @@ function preloadFaceImages(callback) {
 function startGame() {
     gridSize = parseInt(document.getElementById('grid-size').value);
     movesLeft = parseInt(document.getElementById('moves-limit').value);
-    timeLeft = parseInt(document.getElementById('time-limit').value);
 
     document.getElementById('controls').style.display = 'none';
 
@@ -56,15 +53,6 @@ function startGame() {
     generateBoard();
     updateInfo();
     drawBoard();
-
-    clearInterval(timer);
-    if (timeLeft > 0) {
-        timer = setInterval(() => {
-            timeLeft--;
-            updateInfo();
-            if (timeLeft <= 0) endGame();
-        }, 1000);
-    }
 
     canvas.addEventListener('mousedown', handleStart);
     canvas.addEventListener('mousemove', handleMove);
@@ -381,8 +369,8 @@ function handleEnd(evt) {
     total += affected.length;
     updateInfo();
 
-    if (timeLeft === 0) movesLeft--;
-    if (movesLeft <= 0 && timeLeft === 0) endGame();
+    movesLeft--;
+    if (movesLeft <= 0) endGame();
 
     path = [];
     visitedGroups = new Set();
@@ -567,13 +555,15 @@ function updateInfo() {
 }
 
 function endGame() {
-    clearInterval(timer);
     canvas.removeEventListener('mousedown', handleStart);
     canvas.removeEventListener('mousemove', handleMove);
     canvas.removeEventListener('mouseup', handleEnd);
     canvas.removeEventListener('touchstart', handleStart);
     canvas.removeEventListener('touchmove', handleMove);
     canvas.removeEventListener('touchend', handleEnd);
+
+    // Hide game info
+    document.getElementById('game-info').style.display = 'none';
 
     // Hide canvas and show final score
     document.getElementById('game-container').innerHTML = `<h2>Final Score: ${score}</h2>`;
