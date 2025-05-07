@@ -1,7 +1,7 @@
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-let gridSize = 6;
+let gridSize = 5;
 let movesLeft = 0;
 let timeLeft = 0;
 let total = 0;
@@ -17,7 +17,7 @@ let visitedGroups = new Set();
 let lastDirection = null;
 let fallingCells = [];
 
-const groups = ['chinese', 'japanease', 'korean', 'mongolian', 'vietnamese']; // Number of groups
+const groups = ['argen', 'asian', 'ethio', 'india', 'scand']; // Number of groups
 const facesPerGroup = 4;
 const faceImages = [];
 let currentEliminatedGroups = [];
@@ -29,7 +29,7 @@ function preloadFaceImages(callback) {
         faceImages[g] = [];
         for (let i = 1; i <= facesPerGroup; i++) {
             const img = new Image();
-            img.src = `images/${groups[g]}${i}.jpg`;
+            img.src = `images/women/${groups[g]}${i}.jpg`;
             img.onload = () => {
                 loaded++;
                 if (loaded === groups.length * facesPerGroup) callback();
