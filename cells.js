@@ -17,7 +17,7 @@ let visitedGroups = new Set();
 let lastDirection = null;
 let fallingCells = [];
 
-const groups = ['argen', 'asian', 'ethio', 'india', 'scand']; // Number of groups
+const groups = ['french', 'asian', 'ethio', 'india', 'scand']; // Number of groups
 const facesPerGroup = 4;
 const faceImages = [];
 let currentEliminatedGroups = [];
