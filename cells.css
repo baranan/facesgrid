@@ -68,4 +68,58 @@ body {
       opacity: 0;
     }
   }
+
+  /* Modern Form Styling */
+#controls {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#controls label {
+  margin: 10px 0;
+  font-size: 1rem;
+}
+
+#controls input {
+  margin-left: 10px;
+  width: 60px;
+  padding: 5px 8px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+#start-game {
+  margin-top: 10px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+#start-game:hover {
+  background: #45a045;
+}
+
+.final-score-box {
+  font-size: 2rem;
+  background: linear-gradient(135deg, #f3ec78, #af4261);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+  max-width: 400px;
+  margin: 40px auto;
+}
+
   

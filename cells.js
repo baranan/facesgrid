@@ -14,6 +14,7 @@ let currentGroup = null;
 let visitedGroups = new Set();
 let lastDirection = null;
 let fallingCells = [];
+let loopClosed = false;
 
 const groups = ['french', 'asian', 'ethio', 'eng', 'scand']; // Number of groups
 const facesPerGroup = 4;
@@ -42,6 +43,12 @@ function startGame() {
     movesLeft = parseInt(document.getElementById('moves-limit').value);
 
     document.getElementById('controls').style.display = 'none';
+    document.getElementById('game-info').style.display = 'block';
+    document.getElementById('game-container').style.display = 'block';
+    document.getElementById('game-over').style.display = 'none';
+    
+    const container = document.getElementById('game-container');
+    canvas.style.display = 'block'; // restore canvas if hidden
 
     total = 0;
     score = 0;
@@ -124,16 +131,16 @@ function drawPath() {
 
 // Draw the total score
 function drawTotalScore() {
-    const totalDeltaScore = path.reduce((sum, p) => sum + (p.deltaScore || 0), 0);
+    const totalScore = path.reduce((sum, p) => sum + (p.deltaScore || 0), 0);
 
     ctx.save();
     ctx.globalAlpha = 0.12; // Adjust to taste
-    ctx.fillStyle = totalDeltaScore >= 0 ? 'green' : 'red';
+    ctx.fillStyle = totalScore >= 0 ? 'green' : 'red';
     ctx.font = `${canvas.width * 0.98}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(
-        totalDeltaScore,
+        totalScore,
         canvas.width / 2,
         canvas.height / 2
     );
@@ -224,17 +231,18 @@ function handleStart(evt) {
     drawBoard();
 }
 
-function computeDeltaScore(isStraight, isDiagonal, loopClosed) {
-    let deltaScore = 0;
-    if (isStraight) {
-        deltaScore += 2; // Straight line bonus
-    }
-    if (isDiagonal) {
-        deltaScore -= 1; // Diagonal bonus
-    }
+
+// Recompute delta scores for all the cells in the path
+function recomputeDeltaScoresForPath() {
+    // Track how many straight moves have been made in a row
+    let consecutiveStraightMoves = 0;
+
+    // Ensure the first cell has a delta score of 0 (no move yet)
+    if (path.length > 0) path[0].deltaScore = 0;
+
+    // Compute loop bonus once, if the loop is closed
+    let loopBonus = 0;
     if (loopClosed) {
-        // Compute bonus for eliminating all faces in visited groups
-        let loopBonus = 0;
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
                 const cell = board[y][x];
@@ -243,9 +251,50 @@ function computeDeltaScore(isStraight, isDiagonal, loopClosed) {
                 }
             }
         }
-        deltaScore += loopBonus; // Add loop bonus
     }
-    return deltaScore;
+
+    // Walk through the path starting from the second cell
+    for (let i = 1; i < path.length; i++) {
+        const prev = path[i - 1];
+        const curr = path[i];
+
+        const dx = curr.x - prev.x;
+        const dy = curr.y - prev.y;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        const isStraight = (dx === 0 || dy === 0) && (absDx + absDy === 1);
+        const isDiagonal = absDx === 1 && absDy === 1;
+
+        // Assign direction
+        curr.direction = isStraight
+            ? (dx === 0 ? 'vertical' : 'horizontal')
+            : (isDiagonal ? 'diagonal' : null);
+
+        // Update straight-move streak
+        if (isStraight) {
+            consecutiveStraightMoves++;
+        } else {
+            consecutiveStraightMoves = 0;
+        }
+
+        // Compute base score for the move
+        let deltaScore = 0;
+        if (isStraight) {
+            deltaScore += Math.pow(2, consecutiveStraightMoves);
+        }
+        if (isDiagonal) {
+            deltaScore -= 1;
+        }
+
+        // Only the **last** cell in the path should get the loop bonus
+        if (loopClosed && i === path.length - 1) {
+            deltaScore += loopBonus;
+        }
+
+        // Assign final score
+        curr.deltaScore = deltaScore;
+    }
 }
 
 
@@ -283,6 +332,8 @@ function handleMove(evt) {
     // Check if this is the same cell as the last one
     const last = path[path.length - 1];
     if (last.x === x && last.y === y) return;
+
+    if (loopClosed) return; // No moves allowed after closing the loop
 
     // Compute the difference in x and y coordinates
     const dx = x - last.x;
@@ -330,8 +381,8 @@ function handleMove(evt) {
         loopClosed = true;
     }
 
-    path.push({ x, y, direction, 
-        deltaScore:computeDeltaScore(isStraight, isDiagonal, loopClosed) });
+    path.push({ x, y, direction });
+    recomputeDeltaScoresForPath(); // 🔁 Recompute all deltaScores
     drawBoard();
     return;
 }
@@ -562,16 +613,28 @@ function endGame() {
     canvas.removeEventListener('touchmove', handleMove);
     canvas.removeEventListener('touchend', handleEnd);
 
-    // Hide game info
     document.getElementById('game-info').style.display = 'none';
+    canvas.style.display = 'none';
 
-    // Hide canvas and show final score
-    document.getElementById('game-container').innerHTML = `<h2>Final Score: ${score}</h2>`;
+    document.getElementById('game-container').style.display = 'none';
 
-    // Show controls again
     document.getElementById('controls').style.display = 'block';
+
+    document.getElementById('game-over').style.display = 'block';
+    document.getElementById('final-score').textContent = score;
+    const mean = moves > 0 ? (score / moves).toFixed(2) : '0';
+    document.getElementById('final-mean-score').textContent = mean;
+
 }
 
 document.getElementById('start-game').addEventListener('click', () => {
-    preloadFaceImages(startGame);
+    // Check if images are already loaded
+    let alreadyLoaded = faceImages.length === groups.length &&
+        faceImages.every(group => group.length === facesPerGroup && group.every(img => img.complete));
+
+    if (alreadyLoaded) {
+        startGame();
+    } else {
+        preloadFaceImages(startGame);
+    }
 });
