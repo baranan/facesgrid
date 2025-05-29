@@ -34,16 +34,18 @@ body {
   }
   
   #game-container {
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 80vh;
   }
   
   canvas {
-    border: 2px solid #aaa;
-    background-color: #9c9382;;
+    border: 2px solid #fff;
+    background-color: #ffffff;
     touch-action: none;
+    display: block;
+    margin: auto;
   }
   
   .circle {

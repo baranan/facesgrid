@@ -421,7 +421,7 @@ function handleEnd(evt) {
     updateInfo();
 
     movesLeft--;
-    if (movesLeft <= 0) endGame();
+    if (movesLeft <= 0) setTimeout(endGame, 1000);
 
     path = [];
     visitedGroups = new Set();
