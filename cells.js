@@ -70,7 +70,7 @@ function startGame() {
 }
 
 function resizeCanvas() {
-    canvas.width = canvas.height = Math.min(window.innerWidth, window.innerHeight) * 0.8;
+    canvas.width = canvas.height = Math.min(window.innerWidth, window.innerHeight) * 0.95;
     cellSize = canvas.width / gridSize;
 }
 
