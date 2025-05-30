@@ -94,14 +94,20 @@ body {
     background: #ccc;
   }
 
-  
   canvas {
+    display: block;
+    margin: auto;
+    width: 100%;
+    max-width: 90vmin;
+    max-height: calc(100vh - 200px); /* Leaves room for controls, margins */
+    height: auto;
     border: 2px solid #fff;
     background-color: #ffffff;
     touch-action: none;
-    display: block;
-    margin: auto;
+    box-sizing: border-box;
   }
+  
+  
   
   .circle {
     transition: transform 0.2s ease, opacity 0.2s ease;

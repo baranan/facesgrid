@@ -209,9 +209,11 @@ function getCellFromEvent(evt) {
     const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
     const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
     
-    const offsetX = clientX - rect.left;
-    const offsetY = clientY - rect.top;
-
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const offsetX = (clientX - rect.left) * scaleX;
+    const offsetY = (clientY - rect.top) * scaleY;
+    
     const x = Math.floor(offsetX / cellSize);
     const y = Math.floor(offsetY / cellSize);
 
