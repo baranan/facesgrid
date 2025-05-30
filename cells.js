@@ -45,6 +45,7 @@ function startGame1() {
     movesLeft = parseInt(document.getElementById('moves-limit').value);
 
     document.getElementById('controls').style.display = 'none';
+    document.getElementById('instructions').style.display = 'none';
     document.getElementById('game-info').style.display = 'block';
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
@@ -82,7 +83,11 @@ function startGame2() {
 }
 
 function resizeCanvas() {
-    canvas.width = canvas.height = Math.min(window.innerWidth, window.innerHeight) * 0.95;
+    const controlsHeight = document.getElementById('controls').offsetHeight;
+    const availableHeight = window.innerHeight - controlsHeight - 100; // adjust 100 if needed
+    const availableWidth = window.innerWidth;
+    const size = Math.min(availableWidth, availableHeight);
+    canvas.width = canvas.height = size;
     cellSize = canvas.width / gridSize;
 }
 
@@ -640,14 +645,18 @@ function endGame() {
 }
 
 document.getElementById('start-game').addEventListener('click', () => {
-    // Check if images are already loaded
-    /*let alreadyLoaded = faceImages.length === groups.length &&
-        faceImages.every(group => group.length === facesPerGroup && group.every(img => img.complete));
-
-    if (alreadyLoaded) {
-        startGame();
-    } else {
-        preloadFaceImages(startGame);
-    }*/
     startGame1();    
+});
+
+document.getElementById('toggle-rules').addEventListener('click', () => {
+    document.getElementById('instructions').style.display = 'block';
+  });
+  
+  document.getElementById('close-rules').addEventListener('click', () => {
+    document.getElementById('instructions').style.display = 'none';
+  });
+  
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    drawBoard();
 });

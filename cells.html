@@ -19,6 +19,7 @@
     <label>Grid Size: <input type="number" id="grid-size" value="5" min="3" max="10" /></label>
     <label>Moves Limit: <input type="number" id="moves-limit" value="30" /></label>
     <button id="start-game">Start Game</button>
+    <button id="toggle-rules" class="secondary-button">📘 Game Rules</button>
   </div>
   <div id="game-info">
     <span id="moves-left"></span>
@@ -26,11 +27,41 @@
     <span id="mean-score"></span> 
   </div>
 
+  <div id="instructions" class="instructions-panel">
+    <button id="close-rules" class="close-button">✖</button>
+  
+    <h2>📘 How to Play: Face Grid Game</h2>
+  
+    <h3>🔹 Basic Rules:</h3>
+    <ul>
+      <li>You can connect adjacent faces (up, down, left, or right) if they belong to the same team (e.g., all blue).</li>
+      <li>When moving in straight lines (vertical or horizontal), you must stay in the same direction until you make a diagonal move.</li>
+      <li>To switch teams, move diagonally to a face from a different team (costs 1 point).<br>
+          → For example, you can't go right, then up, unless you first switch direction with a diagonal move.</li>
+      <li>You can't revisit a face, except the first face.</li>
+      <li>You can cancel your move by going back.</li>
+    </ul>
+  
+    <h3>⭐ Scoring:</h3>
+    <ul>
+      <li>Straight moves (same group) give more points the longer the streak.</li>
+      <li>Diagonal moves cost 1 point (but let you switch group).</li>
+      <li>Closing a loop (returning to the starting face) eliminates all faces of the groups you visited, rewarding you with 1 point for each face.</li>
+    </ul>
+  
+    <h3>💡 Tips:</h3>
+    <ul>
+      <li>Plan long straight paths—they score more!</li>
+      <li>Use loops to eliminate large parts of the board.</li>
+      <li>Be strategic about when to switch teams.</li>
+    </ul>
+  </div>
+  
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
   </div>
 
-  <div id="game-over" class="final-score-box">
+  <div id="game-over" class="final-score-box" style="display: none;">
     <p>Final score: <span id="final-score"></span></p>
     <p>Mean score: <span id="final-mean-score"></span></p>
   </div>
