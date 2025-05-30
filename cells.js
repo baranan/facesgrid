@@ -16,7 +16,8 @@ let lastDirection = null;
 let fallingCells = [];
 let loopClosed = false;
 
-const groups = ['french', 'asian', 'ethio', 'eng', 'scand']; // Number of groups
+let faceSet = 'none'; // Default face set
+const groups = ['blue', 'green', 'red', 'grey', 'yellow']; // Number of groups
 const facesPerGroup = 4;
 const faceImages = [];
 let currentEliminatedGroups = [];
@@ -28,7 +29,7 @@ function preloadFaceImages(callback) {
         faceImages[g] = [];
         for (let i = 1; i <= facesPerGroup; i++) {
             const img = new Image();
-            img.src = `images/women/${groups[g]}${i}.jpg`;
+            img.src = `images/${faceSet}/${groups[g]}${i}.jpg`;;
             img.onload = () => {
                 loaded++;
                 if (loaded === groups.length * facesPerGroup) callback();
@@ -38,7 +39,8 @@ function preloadFaceImages(callback) {
     }
 }
 
-function startGame() {
+function startGame1() {
+    let newFaceSet = document.getElementById('face-set').value;
     gridSize = parseInt(document.getElementById('grid-size').value);
     movesLeft = parseInt(document.getElementById('moves-limit').value);
 
@@ -46,10 +48,20 @@ function startGame() {
     document.getElementById('game-info').style.display = 'block';
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
-    
+
     const container = document.getElementById('game-container');
     canvas.style.display = 'block'; // restore canvas if hidden
 
+    if (newFaceSet !== faceSet) {
+        faceSet = newFaceSet;
+        preloadFaceImages(startGame2);
+    }
+    else {
+        startGame2();
+    }
+}
+
+function startGame2() {
     total = 0;
     score = 0;
     moves = 0;
@@ -629,12 +641,13 @@ function endGame() {
 
 document.getElementById('start-game').addEventListener('click', () => {
     // Check if images are already loaded
-    let alreadyLoaded = faceImages.length === groups.length &&
+    /*let alreadyLoaded = faceImages.length === groups.length &&
         faceImages.every(group => group.length === facesPerGroup && group.every(img => img.complete));
 
     if (alreadyLoaded) {
         startGame();
     } else {
         preloadFaceImages(startGame);
-    }
+    }*/
+    startGame1();    
 });

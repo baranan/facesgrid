@@ -23,6 +23,15 @@ body {
     margin: 5px 0;
   }
   
+  #controls select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    margin-top: 5px;
+  }
+  
   #game-info {
     margin-top: 10px;
     font-size: 0.9rem; /* smaller font size */
