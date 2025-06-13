@@ -40,9 +40,12 @@ function preloadFaceImages(callback) {
 }
 
 function startGame1() {
+    score = 0; 
+    
     let newFaceSet = document.getElementById('face-set').value;
     gridSize = parseInt(document.getElementById('grid-size').value);
     movesLeft = parseInt(document.getElementById('moves-limit').value);
+    scoreDisplayMode = document.getElementById('score-overlay-toggle').value;
 
     document.getElementById('controls').style.display = 'none';
     document.getElementById('instructions').style.display = 'none';
@@ -52,6 +55,11 @@ function startGame1() {
 
     const container = document.getElementById('game-container');
     canvas.style.display = 'block'; // restore canvas if hidden
+
+    const header = document.querySelector('h1');
+    if (header) {
+        header.textContent = `Total Score: ${score}`;
+    }
 
     if (newFaceSet !== faceSet) {
         faceSet = newFaceSet;
@@ -150,19 +158,28 @@ function drawPath() {
 function drawTotalScore() {
     const totalScore = path.reduce((sum, p) => sum + (p.deltaScore || 0), 0);
 
-    ctx.save();
-    ctx.globalAlpha = 0.12; // Adjust to taste
-    ctx.fillStyle = totalScore >= 0 ? 'green' : 'red';
-    ctx.font = `${canvas.width * 0.98}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-        totalScore,
-        canvas.width / 2,
-        canvas.height / 2
-    );
-    ctx.restore();
+    if (scoreDisplayMode === 'header') {
+        const header = document.querySelector('h1');
+        if (header) {
+            header.textContent = `${totalScore}`;
+        }
+    } else {
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = totalScore >= 0 ? 'green' : 'red';
+        ctx.font = `${canvas.width * 0.98}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+            totalScore,
+            canvas.width / 2,
+            canvas.height / 2
+        );
+        ctx.restore();
+    }
 }
+
+
 
 // Draw the game board
 function drawBoard() {
@@ -412,6 +429,7 @@ function handleEnd(evt) {
 
     if (path.length < 2) {
         path = [];
+        document.querySelector('h1').textContent = `Total Score: ${score}`;
         return;
     }
 
@@ -444,6 +462,11 @@ function handleEnd(evt) {
 
     path = [];
     visitedGroups = new Set();
+
+    const header = document.querySelector('h1');
+    if (header) {
+        header.textContent = `Total Score: ${score}`;
+    }
 }
 
 function animateRemoval(cells) {
@@ -619,7 +642,7 @@ function drawStaticBoard() {
 
 function updateInfo() {
     document.getElementById('moves-left').textContent = movesLeft > 0 ? `Moves Left: ${movesLeft}` : '';
-    document.getElementById('score').textContent = `Score: ${score}`;
+    //document.getElementById('score').textContent = `Score: ${score}`;
     const mean = moves > 0 ? (score / moves).toFixed(2) : '0';
     document.getElementById('mean-score').textContent = `Mean Score: ${mean}`;
 }
@@ -634,6 +657,8 @@ function endGame() {
 
     document.getElementById('game-info').style.display = 'none';
     canvas.style.display = 'none';
+
+    document.querySelector('h1').textContent = '';
 
     document.getElementById('game-container').style.display = 'none';
 

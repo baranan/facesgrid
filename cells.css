@@ -10,12 +10,16 @@ body {
   
   h1 {
     margin-bottom: 10px;
+    color: green;
+    font-size: 2.5rem;
+    transition: color 0.3s, font-size 0.3s;
   }
   
   #controls {
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: left; /* optional: ensures text inside inputs/selects is left-aligned */
   }
   
   #controls label {
@@ -24,7 +28,8 @@ body {
   }
   
   #controls select {
-    width: 100%;
+    max-width: 100%;
+    width: auto;
     padding: 8px 12px;
     border-radius: 6px;
     border: 1px solid #ccc;
