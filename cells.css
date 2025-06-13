@@ -15,29 +15,6 @@ body {
     transition: color 0.3s, font-size 0.3s;
   }
   
-  #controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: left; /* optional: ensures text inside inputs/selects is left-aligned */
-  }
-  
-  #controls label {
-    display: block;
-    margin: 5px 0;
-  }
-  
-  #controls select {
-    max-width: 100%;
-    width: auto;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    margin-top: 5px;
-  }
-  
-
   #game-info {
     margin-top: 10px;
     font-size: 0.9rem; /* smaller font size */
@@ -162,6 +139,10 @@ body {
 
   /* Modern Form Styling */
 #controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: left; /* optional: ensures text inside inputs/selects is left-aligned */
   background: #fff;
   padding: 20px;
   border-radius: 12px;
@@ -173,8 +154,19 @@ body {
 }
 
 #controls label {
-  margin: 10px 0;
+  display: block;
+  margin: 5px 0;
   font-size: 1rem;
+}
+
+#controls select {
+  max-width: 100%;
+  width: auto;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  margin-top: 5px;
 }
 
 #controls input {

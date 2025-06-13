@@ -663,7 +663,9 @@ function endGame() {
 
     document.getElementById('game-container').style.display = 'none';
 
-    document.getElementById('controls').style.display = 'block';
+    //document.getElementById('controls').style.display = 'block';
+    document.getElementById('controls').style.removeProperty('display');
+
 
     document.getElementById('game-over').style.display = 'block';
     document.getElementById('final-score').textContent = score;
