@@ -17,7 +17,7 @@ let fallingCells = [];
 let loopClosed = false;
 
 let faceSet = 'none'; // Default face set
-const groups = ['blue', 'green', 'red', 'gray', 'yellow']; // Number of groups
+const groups = ['black', 'green', 'red', 'gray', 'yellow']; // Number of groups
 const facesPerGroup = 4;
 const faceImages = [];
 let currentEliminatedGroups = [];
