@@ -651,10 +651,14 @@ document.getElementById('start-game').addEventListener('click', () => {
 });
 
 document.getElementById('toggle-rules').addEventListener('click', () => {
-    document.getElementById('instructions').style.display = 'block';
+    document.getElementById('instructions').style.display = 'flex';
   });
   
   document.getElementById('close-rules').addEventListener('click', () => {
+    document.getElementById('instructions').style.display = 'none';
+  });
+  
+  document.querySelector('.bottom-close').addEventListener('click', () => {
     document.getElementById('instructions').style.display = 'none';
   });
   

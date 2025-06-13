@@ -9,9 +9,8 @@
 <body>
   <h1>Face Grid</h1>
   <div id="controls">
-    <label>
-      Face Set:
-      <select id="face-set">
+    <label style="display: inline-flex; align-items: center; gap: 5px;">
+      Set: <select id="face-set">
         <option value="women" selected>Women</option>
         <option value="men">Men</option>
       </select>
@@ -28,16 +27,16 @@
   </div>
 
   <div id="instructions" class="instructions-panel">
-    <button id="close-rules" class="close-button">✖</button>
+    <div style="max-width: 600px; width: 100%; position: relative;">
+      <button id="close-rules" class="close-button">✖</button>
   
-    <h2>📘 How to Play: Face Grid Game</h2>
-  
-    <h3>🔹 Basic Rules:</h3>
+      <h2>📘 How to Play: Face Grid Game</h2>
+      
+    <h3>🔹 How to move:</h3>
     <ul>
-      <li>You can connect adjacent faces (up, down, left, or right) if they belong to the same team (e.g., all blue).</li>
-      <li>When moving in straight lines (vertical or horizontal), you must stay in the same direction until you make a diagonal move.</li>
-      <li>To switch teams, move diagonally to a face from a different team (costs 1 point).<br>
-          → For example, you can't go right, then up, unless you first switch direction with a diagonal move.</li>
+      <li>To move straight: connect faces of the same team (e.g., all blue).</li>
+      <li>You can't change the direction of a straight line.</li>
+      <li>To move diagonally: connect 2 faces of different teams (costs 1 point).</li>
       <li>You can't revisit a face, except the first face.</li>
       <li>You can cancel your move by going back.</li>
     </ul>
@@ -48,17 +47,12 @@
       <li>Diagonal moves cost 1 point (but let you switch group).</li>
       <li>Closing a loop (returning to the starting face) eliminates all faces of the groups you visited, rewarding you with 1 point for each face.</li>
     </ul>
-  
-    <h3>💡 Tips:</h3>
-    <ul>
-      <li>Plan long straight paths—they score more!</li>
-      <li>Use loops to eliminate large parts of the board.</li>
-      <li>Be strategic about when to switch teams.</li>
-    </ul>
-
     <img src="images/facess.gif" alt="Example Gameplay Animation" style="display: block; margin: 20px auto; max-width: 100%; border-radius: 8px;" />
 
+    <button class="close-button bottom-close">Close Rules</button>
+
   </div>
+</div>
   
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
