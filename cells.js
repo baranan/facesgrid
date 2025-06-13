@@ -41,7 +41,7 @@ function preloadFaceImages(callback) {
 
 function startGame1() {
     score = 0; 
-    
+
     let newFaceSet = document.getElementById('face-set').value;
     gridSize = parseInt(document.getElementById('grid-size').value);
     movesLeft = parseInt(document.getElementById('moves-limit').value);
@@ -455,10 +455,11 @@ function handleEnd(evt) {
     animateRemoval(affected);
     moves++;
     total += affected.length;
-    updateInfo();
 
     movesLeft--;
     if (movesLeft <= 0) setTimeout(endGame, 1000);
+
+    updateInfo();
 
     path = [];
     visitedGroups = new Set();
