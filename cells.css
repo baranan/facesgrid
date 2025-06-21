@@ -205,4 +205,54 @@ body {
   margin: 40px auto;
 }
 
-  
+#show-scores {
+  margin-top: 5px;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+#show-scores:hover {
+  background: #ccc;
+}
+
+#high-scores label {
+  display: block;
+  margin: 10px 0 5px 0;
+  font-size: 1rem;
+}
+
+#high-scores select {
+  width: 100px;
+  padding: 5px 10px;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+}
+
+#high-scores table {
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.9rem;
+  color: #333; /* Dark text for readability */
+  background: white; /* Base background */
+  box-shadow: 0 0 6px rgba(0,0,0,0.05);
+}
+
+#high-scores table th,
+#high-scores table td {
+  border-bottom: 1px solid #ddd;
+  padding: 4px 6px;
+  line-height: 1.2;
+}
+
+#high-scores table tr:nth-child(even) {
+  background-color: #f3f3f3; /* Soft gray instead of white */
+}
+
+

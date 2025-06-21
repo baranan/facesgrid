@@ -1,3 +1,10 @@
+/*
+Uncomment to clear localStorage scores
+Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('scores_')) localStorage.removeItem(k);
+});
+*/
+
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
@@ -45,6 +52,7 @@ function startGame1() {
     let newFaceSet = document.getElementById('face-set').value;
     gridSize = parseInt(document.getElementById('grid-size').value);
     movesLeft = parseInt(document.getElementById('moves-limit').value);
+    movesLeftOriginal = movesLeft; // Store original moves limit for later use
     scoreDisplayMode = document.getElementById('score-overlay-toggle').value;
 
     document.getElementById('controls').style.display = 'none';
@@ -648,7 +656,30 @@ function updateInfo() {
     document.getElementById('mean-score').textContent = `Mean Score: ${mean}`;
 }
 
+function saveHighScores(score, gridSize, movesLimit, mean) {
+    const keyTotal = `scores_total_${gridSize}x${movesLimit}`;
+    const keyMean = `scores_mean_${gridSize}`;
+    const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const newEntry = { score, gridSize, movesLimit, mean, date: now };
+
+    // ---- Save total scores ----
+    let topTotal = JSON.parse(localStorage.getItem(keyTotal)) || [];
+    topTotal.push(newEntry);
+    topTotal.sort((a, b) => b.score - a.score);
+    topTotal = topTotal.slice(0, 10);
+    localStorage.setItem(keyTotal, JSON.stringify(topTotal));
+
+    // ---- Save mean scores ----
+    let topMean = JSON.parse(localStorage.getItem(keyMean)) || [];
+    topMean.push(newEntry);
+    topMean.sort((a, b) => b.mean - a.mean);
+    topMean = topMean.slice(0, 10);
+    localStorage.setItem(keyMean, JSON.stringify(topMean));
+}
+
 function endGame() {
+
     canvas.removeEventListener('mousedown', handleStart);
     canvas.removeEventListener('mousemove', handleMove);
     canvas.removeEventListener('mouseup', handleEnd);
@@ -672,6 +703,8 @@ function endGame() {
     const mean = moves > 0 ? (score / moves).toFixed(2) : '0';
     document.getElementById('final-mean-score').textContent = mean;
 
+    saveHighScores(score, gridSize, movesLeftOriginal, parseFloat(mean));
+    document.getElementById('show-scores').style.display = 'inline-block';
 }
 
 document.getElementById('start-game').addEventListener('click', () => {
@@ -694,3 +727,135 @@ window.addEventListener('resize', () => {
     resizeCanvas();
     drawBoard();
 });
+
+/*
+ * Display top scores
+ * This function retrieves the top scores from localStorage and displays them in a table.
+ */
+// Show the "Top Scores" panel when the user clicks the button
+document.getElementById('show-scores').addEventListener('click', () => {
+    populateScoreDropdowns();     // Fill dropdowns with available grid sizes and moves
+    showTopScores();              // Display the scores for the default selection
+    document.getElementById('high-scores').style.display = 'block';  // Show the panel
+});
+
+// Hide the Top Scores panel when "Close" is clicked
+document.getElementById('close-scores').addEventListener('click', () => {
+    document.getElementById('high-scores').style.display = 'none';
+});
+// Hide the Top Scores panel when "X" is clicked
+document.getElementById('close-scores-x').addEventListener('click', () => {
+    document.getElementById('high-scores').style.display = 'none';
+});
+
+
+// Update scores when user changes grid size or moves selection
+document.getElementById('score-grid-select').addEventListener('change', () => {
+    updateMovesDropdown();   // Update the moves dropdown based on selected grid
+    showTopScores();         // Then update the scores
+});
+document.getElementById('score-moves-select').addEventListener('change', showTopScores);
+
+// This fills the grid size and move limit dropdowns with available combinations
+function populateScoreDropdowns() {
+    const gridSelect = document.getElementById('score-grid-select');
+    const movesSelect = document.getElementById('score-moves-select');
+
+    const keys = Object.keys(localStorage);
+    const gridSizes = new Set();
+    const moveSets = {};
+
+    // Go through all keys in localStorage and collect grid/move combinations
+    keys.forEach(key => {
+        if (key.startsWith('scores_total_')) {
+            const match = key.match(/^scores_total_(\d+)x(\d+)$/);
+            if (match) {
+                const [_, grid, moves] = match;
+                gridSizes.add(grid);
+                if (!moveSets[grid]) moveSets[grid] = new Set();
+                moveSets[grid].add(moves);
+            }
+        } else if (key.startsWith('scores_mean_')) {
+            const grid = key.split('_')[2];
+            gridSizes.add(grid);
+        }
+    });
+
+    // Populate the grid dropdown
+    gridSelect.innerHTML = '';
+    Array.from(gridSizes).sort((a, b) => a - b).forEach(grid => {
+        const opt = document.createElement('option');
+        opt.value = grid;
+        opt.textContent = grid;
+        gridSelect.appendChild(opt);
+    });
+
+    // Update the moves dropdown based on the selected grid
+    updateMovesDropdown(moveSets);
+}
+
+// This updates the moves dropdown after a grid size is chosen
+function updateMovesDropdown(preloadedMoveSets = null) {
+    const grid = document.getElementById('score-grid-select').value;
+    const movesSelect = document.getElementById('score-moves-select');
+
+    let moveSet;
+    if (preloadedMoveSets) {
+        moveSet = preloadedMoveSets[grid] || new Set();
+    } else {
+        // If not preloaded, re-scan localStorage
+        moveSet = new Set();
+        Object.keys(localStorage).forEach(key => {
+            const match = key.match(/^scores_total_([0-9]+)x([0-9]+)$/);
+            if (match && match[1] === grid) {
+                moveSet.add(match[2]);
+            }
+        });
+    }
+
+    movesSelect.innerHTML = '<option value="any">Any</option>';
+    Array.from(moveSet).sort((a, b) => a - b).forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        movesSelect.appendChild(opt);
+    });
+}
+
+// This function displays the top scores based on the current dropdown selection
+function showTopScores() {
+    const grid = document.getElementById('score-grid-select').value;
+    const moves = document.getElementById('score-moves-select').value;
+    let scores = [];
+
+    if (moves === 'any') {
+        scores = JSON.parse(localStorage.getItem(`scores_mean_${grid}`)) || [];
+        scores.sort((a, b) => b.mean - a.mean);
+    } else {
+        scores = JSON.parse(localStorage.getItem(`scores_total_${grid}x${moves}`)) || [];
+        scores.sort((a, b) => b.score - a.score);
+    }
+
+    const table = document.getElementById('score-table');
+    const showMoves = moves === 'any';
+
+    // Build table header
+    const headers = ['Total', 'Mean', ...(showMoves ? ['Moves'] : []), 'Date'];
+    table.innerHTML = `
+        <thead><tr>${headers.map(h => `<th style="border-bottom: 1px solid #ccc; padding: 6px;">${h}</th>`).join('')}</tr></thead>
+        <tbody>
+        ${scores.map(s => `
+            <tr>
+                <td style="text-align: center; padding: 6px;">${s.score}</td>
+                <td style="text-align: center; padding: 6px;">${s.mean.toFixed(2)}</td>
+                ${showMoves ? `<td style="text-align: center; padding: 6px;">${s.movesLimit}</td>` : ''}
+                <td style="text-align: center; padding: 6px;">${s.date || ''}</td>
+            </tr>`).join('')}
+        </tbody>
+    `;
+
+    if (scores.length === 0) {
+        table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 10px;">No scores recorded yet.</td></tr>';
+    }
+}
+

@@ -26,6 +26,7 @@
     </label>
     <button id="start-game">Start Game</button>
     <button id="toggle-rules" class="secondary-button">📘 Game Rules</button>
+    <button id="show-scores" class="secondary-button" style="display: none;">📊 Top Scores</button>
   </div>
   <div id="game-info">
     <span id="moves-left"></span>
@@ -70,6 +71,25 @@
     <p>Mean score: <span id="final-mean-score"></span></p>
   </div>
 
+  <div id="high-scores" class="final-score-box" style="display: none; position: relative;">
+    <button id="close-scores-x" class="close-button">✖</button>
+    <h3>🏆 Top Scores</h3>
+    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+      <label>
+        Grid Size:
+        <select id="score-grid-select"></select>
+      </label>
+      <label>
+        Moves:
+        <select id="score-moves-select">
+          <option value="any">Any</option>
+        </select>
+      </label>
+    </div>
+    <table id="score-table" style="margin-top: 20px; width: 100%; font-size: 1rem; border-collapse: collapse;"></table>
+    <button class="bottom-close" id="close-scores">Close</button>
+  </div>
+  
   <script src="cells.js"></script>
 </body>
 </html>
