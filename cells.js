@@ -61,6 +61,9 @@ function startGame1() {
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
 
+    console.log('closing high-scores panel if open');
+    document.getElementById('high-scores').style.display = 'none';
+
     const container = document.getElementById('game-container');
     canvas.style.display = 'block'; // restore canvas if hidden
 
