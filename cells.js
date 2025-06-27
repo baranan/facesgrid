@@ -1,9 +1,3 @@
-/*
-Uncomment to clear localStorage scores
-Object.keys(localStorage).forEach(k => {
-    if (k.startsWith('scores_')) localStorage.removeItem(k);
-});
-*/
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -278,9 +272,84 @@ function handleStart(evt) {
     drawBoard();
 }
 
-
-// Recompute delta scores for all the cells in the path
 function recomputeDeltaScoresForPath() {
+    if (path.length === 0) return;
+
+    // First cell doesn't represent a move
+    path[0].deltaScore = 0;
+
+    // -------- Loop Bonus Calculation --------
+    let loopBonus = 0;
+    if (loopClosed) {
+        for (let y = 0; y < gridSize; y++) {
+            for (let x = 0; x < gridSize; x++) {
+                const cell = board[y][x];
+                if (cell && visitedGroups.has(cell.group)) {
+                    loopBonus += 1;
+                }
+            }
+        }
+    }
+
+    // -------- Segment Tracking --------
+    let segmentIndex = 0;       // 0 means we haven't started any straight segment yet
+    let segmentStep = 0;        // How many moves within the current straight segment
+    let expectingNewStraight = true; // True after a diagonal move
+
+    for (let i = 1; i < path.length; i++) {
+        const prev = path[i - 1];
+        const curr = path[i];
+
+        const dx = curr.x - prev.x;
+        const dy = curr.y - prev.y;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        const isStraight = (dx === 0 || dy === 0) && (absDx + absDy === 1);
+        const isDiagonal = absDx === 1 && absDy === 1;
+
+        // Direction is used for visual offset in drawPath()
+        curr.direction = isStraight
+            ? (dx === 0 ? 'vertical' : 'horizontal')
+            : (isDiagonal ? 'diagonal' : null);
+
+        let deltaScore = 0;
+
+        if (isStraight) {
+            if (expectingNewStraight) {
+                // Only now do we start a new segment
+                segmentIndex++;
+                segmentStep = 1; // First step in the new segment
+                expectingNewStraight = false;
+            } else {
+                segmentStep++; // Continuing current segment
+            }
+
+            // Arithmetic series step: base × step
+            deltaScore = segmentIndex * segmentStep;
+        }
+        else if (isDiagonal) {
+            // Diagonals interrupt straight segments
+            deltaScore = -1;
+            expectingNewStraight = true; // Next straight move will start a new segment
+            segmentStep = 0; // Reset step count
+        }
+        else {
+            // Should not happen unless invalid move
+            deltaScore = 0;
+        }
+
+        // Loop bonus only applies to the last step
+        if (loopClosed && i === path.length - 1) {
+            deltaScore += loopBonus;
+        }
+
+        curr.deltaScore = deltaScore;
+    }
+}
+
+// Obsolete: Recompute delta scores for all the cells in the path
+function recomputeDeltaScoresForPathGeometic() {
     // Track how many straight moves have been made in a row
     let consecutiveStraightMoves = 0;
 
@@ -862,3 +931,26 @@ function showTopScores() {
     }
 }
 
+// Handle delete scores button
+document.getElementById('delete-scores').addEventListener('click', () => {
+    document.getElementById('confirm-delete').style.display = 'flex';
+});
+
+// Handle confirmation "Yes, delete"
+document.getElementById('confirm-delete-yes').addEventListener('click', () => {
+    // Delete all localStorage keys that start with 'scores_'
+    Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('scores_')) localStorage.removeItem(k);
+    });
+
+    // Hide the confirmation and scores panel
+    document.getElementById('confirm-delete').style.display = 'none';
+    document.getElementById('high-scores').style.display = 'none';
+
+    alert("Top scores have been cleared.");
+});
+
+// Handle cancellation
+document.getElementById('confirm-delete-cancel').addEventListener('click', () => {
+    document.getElementById('confirm-delete').style.display = 'none';
+});
