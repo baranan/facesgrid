@@ -23,6 +23,9 @@ const facesPerGroup = 4;
 const faceImages = [];
 let currentEliminatedGroups = [];
 
+let lastSelectedGrid = null;
+let lastSelectedMoves = null;
+
 // Preload face images
 function preloadFaceImages(callback) {
     let loaded = 0;
@@ -247,7 +250,7 @@ function getCellFromEvent(evt) {
     if (fracX > 0.2 && fracX < 0.8 && fracY > 0.2 && fracY < 0.8) {
         return { x, y };
     } else {
-        return { x: -1, y: -1 };
+        return null; // Pointer is not sufficiently inside the cell
     }
 }
 
@@ -263,7 +266,10 @@ function handleStart(evt) {
     loopClosed = false;
     lastDirection = null;
 
-    const { x, y } = getCellFromEvent(evt);
+    const cell = getCellFromEvent(evt);
+    if (!cell) return;    
+    const { x, y } = cell;
+
     if (isInGrid(x, y)) {
         path.push({ x, y });
         currentGroup = board[y][x].group;
@@ -418,13 +424,20 @@ function handleMove(evt) {
     if (!isMouseDown) return; // Moving only as long as mouse is down
 
     // Get the current cell from the event
-    const { x, y } = getCellFromEvent(evt);
+    const cell = getCellFromEvent(evt);
+    if (!cell) return;    
+    const { x, y } = cell;
+    
     if (!isInGrid(x, y)) return;
 
     // Handle backtracking
-    const backtracking = path.length >= 2 &&
-    path[path.length - 2].x === x &&
-    path[path.length - 2].y === y;
+    let backtracking = false;
+    if (path.length >= 2) {
+        const prev = path[path.length - 2];
+        if (prev && prev.x === x && prev.y === y) {
+            backtracking = true;
+        }
+    }    
 
     if (backtracking) {
         path.pop(); // remove last step
@@ -446,6 +459,7 @@ function handleMove(evt) {
     }
 
     // Check if this is the same cell as the last one
+    if (path.length === 0) return; // No moves allowed if path is empty
     const last = path[path.length - 1];
     if (last.x === x && last.y === y) return;
 
@@ -823,10 +837,14 @@ document.getElementById('close-scores-x').addEventListener('click', () => {
 
 // Update scores when user changes grid size or moves selection
 document.getElementById('score-grid-select').addEventListener('change', () => {
+    lastSelectedGrid = document.getElementById('score-grid-select').value;
     updateMovesDropdown();   // Update the moves dropdown based on selected grid
     showTopScores();         // Then update the scores
 });
-document.getElementById('score-moves-select').addEventListener('change', showTopScores);
+document.getElementById('score-moves-select').addEventListener('change', () => {
+    lastSelectedMoves = document.getElementById('score-moves-select').value;
+    showTopScores();
+});
 
 // This fills the grid size and move limit dropdowns with available combinations
 function populateScoreDropdowns() {
@@ -837,7 +855,6 @@ function populateScoreDropdowns() {
     const gridSizes = new Set();
     const moveSets = {};
 
-    // Go through all keys in localStorage and collect grid/move combinations
     keys.forEach(key => {
         if (key.startsWith('scores_total_')) {
             const match = key.match(/^scores_total_(\d+)x(\d+)$/);
@@ -853,18 +870,27 @@ function populateScoreDropdowns() {
         }
     });
 
-    // Populate the grid dropdown
+    // Populate the grid size dropdown
     gridSelect.innerHTML = '';
     Array.from(gridSizes).sort((a, b) => a - b).forEach(grid => {
         const opt = document.createElement('option');
         opt.value = grid;
         opt.textContent = grid;
+        if (grid === lastSelectedGrid) opt.selected = true;
         gridSelect.appendChild(opt);
     });
 
-    // Update the moves dropdown based on the selected grid
     updateMovesDropdown(moveSets);
+
+    // Re-select the last moves value if still valid
+    if (lastSelectedMoves) {
+        const optionExists = Array.from(movesSelect.options).some(opt => opt.value === lastSelectedMoves);
+        if (optionExists) {
+            movesSelect.value = lastSelectedMoves;
+        }
+    }
 }
+
 
 // This updates the moves dropdown after a grid size is chosen
 function updateMovesDropdown(preloadedMoveSets = null) {
