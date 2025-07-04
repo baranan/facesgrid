@@ -58,7 +58,6 @@ function startGame1() {
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
 
-    console.log('closing high-scores panel if open');
     document.getElementById('high-scores').style.display = 'none';
 
     const container = document.getElementById('game-container');
@@ -605,12 +604,14 @@ function dropCells(callback) {
     // Determine which groups are allowed for newly generated faces
     // 
     let allowedGroups;
-    if (currentEliminatedGroups.length < groups.length - 1) {
+    if (!loopClosed && currentEliminatedGroups.length < groups.length - 1) {
+        // If at two groups were not eliminated and those who were eliminated were probably not completely eliminated becase no loop closed: allow only the remaining groups
         allowedGroups = [...Array(groups.length).keys()].filter(g => !currentEliminatedGroups.includes(g));
     } else {
         // If too many groups were eliminated: allow all groups
         allowedGroups = [...Array(groups.length).keys()];
-    }    
+    }
+    console.log(`Allowed groups for new cells: ${allowedGroups.join(', ')}`);    
 
     // Loop through each column to simulate gravity
     for (let x = 0; x < gridSize; x++) {
