@@ -290,13 +290,14 @@ function recomputeDeltaScoresForPath() {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
                 const cell = board[y][x];
-                if (cell && visitedGroups.has(cell.group)) {
+                const alreadyVisited = path.some(p => p.x === x && p.y === y);
+                if (cell && !alreadyVisited && visitedGroups.has(cell.group)) {
                     loopBonus += 1;
                 }
             }
         }
     }
-
+    
     // -------- Segment Tracking --------
     let segmentIndex = 0;       // 0 means we haven't started any straight segment yet
     let segmentStep = 0;        // How many moves within the current straight segment
@@ -486,10 +487,9 @@ function handleMove(evt) {
 
         direction = dx === 0 ? 'vertical' : 'horizontal';
 
-        // Disallow changing straight direction without diagonal in between
-        if (lastDirection && lastDirection!=='diagonal' && lastDirection !== direction) return;
-
+        // ✅ Allow switching between vertical/horizontal as long as it's the same group
         lastDirection = direction;
+
     } else if (isDiagonal) {
         if (nextGroup === currentGroup) return;
 
@@ -603,10 +603,14 @@ function dropCells(callback) {
     fallingCells = [];
 
     // Determine which groups are allowed for newly generated faces
-    // If some groups were eliminated but not all, exclude the eliminated groups from selection
-    let allowedGroups = (currentEliminatedGroups.length > 0 && currentEliminatedGroups.length != groups.length)
-        ? [...Array(groups.length).keys()].filter(g => !currentEliminatedGroups.includes(g))
-        : [...Array(groups.length).keys()];
+    // 
+    let allowedGroups;
+    if (currentEliminatedGroups.length < groups.length - 1) {
+        allowedGroups = [...Array(groups.length).keys()].filter(g => !currentEliminatedGroups.includes(g));
+    } else {
+        // If too many groups were eliminated: allow all groups
+        allowedGroups = [...Array(groups.length).keys()];
+    }    
 
     // Loop through each column to simulate gravity
     for (let x = 0; x < gridSize; x++) {
