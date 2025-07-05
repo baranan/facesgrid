@@ -174,7 +174,7 @@ function drawTotalScore() {
         ctx.save();
         ctx.globalAlpha = 0.12;
         ctx.fillStyle = totalScore >= 0 ? 'green' : 'red';
-        ctx.font = `${canvas.width * 0.98}px Arial`;
+        ctx.font = `${canvas.width * 0.67}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(
@@ -289,8 +289,7 @@ function recomputeDeltaScoresForPath() {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
                 const cell = board[y][x];
-                const alreadyVisited = path.some(p => p.x === x && p.y === y);
-                if (cell && !alreadyVisited && visitedGroups.has(cell.group)) {
+                if (cell && visitedGroups.has(cell.group)) {
                     loopBonus += 1;
                 }
             }
