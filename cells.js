@@ -777,6 +777,8 @@ function endGame() {
     canvas.removeEventListener('touchmove', handleMove);
     canvas.removeEventListener('touchend', handleEnd);
 
+    document.getElementById('main-menu').style.display = 'flex';
+
     document.getElementById('game-info').style.display = 'none';
     canvas.style.display = 'none';
 
@@ -797,21 +799,53 @@ function endGame() {
     document.getElementById('show-scores').style.display = 'inline-block';
 }
 
-document.getElementById('start-game').addEventListener('click', () => {
-    startGame1();    
-});
-
-document.getElementById('toggle-rules').addEventListener('click', () => {
+document.querySelector('.play-btn').addEventListener('click', () => {
+    hideAllPanels();
+    document.getElementById('main-menu').style.display = 'none';
+    startGame1();
+  });
+  
+ document.querySelector('.scores-btn').addEventListener('click', () => {
+    hideAllPanels();
+    document.getElementById('main-menu').style.display = 'none';
+    populateScoreDropdowns();
+    showTopScores();
+    document.getElementById('high-scores').style.display = 'block';
+  });
+  
+  document.querySelector('.rules-btn').addEventListener('click', () => {
+    hideAllPanels();
+    document.getElementById('main-menu').style.display = 'none';
     document.getElementById('instructions').style.display = 'flex';
   });
   
   document.getElementById('close-rules').addEventListener('click', () => {
     document.getElementById('instructions').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'flex';
   });
   
   document.querySelector('.bottom-close').addEventListener('click', () => {
     document.getElementById('instructions').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'flex';
+  });  
+
+  document.querySelector('.settings-btn').addEventListener('click', () => {
+    hideAllPanels();
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('settings-panel').style.display = 'flex';
   });
+  
+  document.getElementById('close-settings').addEventListener('click', () => {
+    document.getElementById('settings-panel').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'flex';
+  });
+
+  document.getElementById('close-settings-bottom').addEventListener('click', () => {
+    document.getElementById('settings-panel').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'flex';
+  });
+  
+  
   
 window.addEventListener('resize', () => {
     resizeCanvas();
@@ -832,10 +866,12 @@ document.getElementById('show-scores').addEventListener('click', () => {
 // Hide the Top Scores panel when "Close" is clicked
 document.getElementById('close-scores').addEventListener('click', () => {
     document.getElementById('high-scores').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'flex'; 
 });
 // Hide the Top Scores panel when "X" is clicked
 document.getElementById('close-scores-x').addEventListener('click', () => {
     document.getElementById('high-scores').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'flex'; 
 });
 
 
@@ -850,6 +886,13 @@ document.getElementById('score-moves-select').addEventListener('change', () => {
     showTopScores();
 });
 
+function hideAllPanels() {
+    document.getElementById('settings-panel').style.display = 'none';
+    document.getElementById('instructions').style.display = 'none';
+    document.getElementById('high-scores').style.display = 'none';
+    document.getElementById('confirm-delete').style.display = 'none';
+ }
+  
 // This fills the grid size and move limit dropdowns with available combinations
 function populateScoreDropdowns() {
     const gridSelect = document.getElementById('score-grid-select');

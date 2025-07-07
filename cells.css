@@ -15,6 +15,42 @@ body {
     transition: color 0.3s, font-size 0.3s;
   }
   
+  .main-button {
+    width: 220px;
+    padding: 20px 40px;
+    font-size: 1.8rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  
+  .main-button:hover {
+    transform: scale(1.05);
+  }
+  
+  .play-btn {
+    background-color: #4CAF50;
+    color: #FFFFFF;
+  }
+  
+  .settings-btn {
+    background-color: #FFC107;
+    color: #333333;
+  }
+  
+  .scores-btn {
+    background-color: #2196F3;
+    color: #FFFFFF;
+  }
+
+  .rules-btn {
+    background-color: #9C27B0; /* Purple */
+    color: #FFFFFF;
+  }
+  
+  
   #game-info {
     margin-top: 10px;
     font-size: 0.9rem; /* smaller font size */
@@ -220,6 +256,25 @@ body {
 #show-scores:hover {
   background: #ccc;
 }
+
+#high-scores {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  width: 90%;
+  max-width: 400px;
+  font-size: 1rem;
+}
+
+#high-scores table {
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+
 
 #high-scores label {
   display: block;

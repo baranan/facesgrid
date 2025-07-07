@@ -7,27 +7,40 @@
   <link rel="stylesheet" href="cells.css" />
 </head>
 <body>
-  <h1 ></h1>
-  <div id="controls">
-    <label style="display: inline-flex; align-items: center; gap: 5px;">
-      Set: <select id="face-set">
-        <option value="women" selected>Women</option>
-        <option value="men">Men</option>
-      </select>
-    </label>    
-    <label>Grid Size: <input type="number" id="grid-size" value="5" min="3" max="10" /></label>
-    <label>Moves Limit: <input type="number" id="moves-limit" value="30" /></label>
-    <label style="display: inline-flex; align-items: center; gap: 1px;">
-      Turn Score:
-      <select id="score-overlay-toggle">
-        <option value="canvas" selected>On Canvas</option>
-        <option value="header">In Header</option>
-      </select>
-    </label>
-    <button id="start-game">Start Game</button>
-    <button id="toggle-rules" class="secondary-button">📘 Game Rules</button>
-    <button id="show-scores" class="secondary-button" style="display: none;">📊 Top Scores</button>
+  <div id="main-menu" style="display: flex; flex-direction: column; align-items: center; gap: 20px; margin-top: 100px;">
+    <button class="main-button play-btn">PLAY</button>
+    <button class="main-button settings-btn">SETTINGS</button>
+    <button class="main-button rules-btn">RULES</button>
+    <button class="main-button scores-btn">SCORES</button>
   </div>
+  
+  <h1></h1>
+
+  <div id="settings-panel" class="instructions-panel" style="display: none;">
+    <div style="position: relative; max-width: 400px; width: 100%;">
+      <div id="controls">
+        <button id="close-settings" class="close-button">✖</button>
+        <label style="display: inline-flex; align-items: center; gap: 5px;">
+          Set: <select id="face-set">
+            <option value="women" selected>Women</option>
+            <option value="men">Men</option>
+          </select>
+        </label>    
+        <label>Grid Size: <input type="number" id="grid-size" value="5" min="3" max="10" /></label>
+        <label>Moves Limit: <input type="number" id="moves-limit" value="30" /></label>
+        <label style="display: inline-flex; align-items: center; gap: 1px;">
+          Turn Score:
+          <select id="score-overlay-toggle">
+            <option value="canvas" selected>On Canvas</option>
+            <option value="header">In Header</option>
+          </select>
+        </label>
+        <button id="close-settings-bottom" class="secondary-button">Close Settings</button>
+        <button id="show-scores" class="secondary-button" style="display: none;">📊 Top Scores</button>
+      </div>
+    </div>
+  </div>
+
   <div id="game-info">
     <span id="moves-left"></span>
     <span id="score"></span>
@@ -70,7 +83,7 @@
     <p>Mean score: <span id="final-mean-score"></span></p>
   </div>
 
-  <div id="high-scores" class="final-score-box" style="display: none; position: relative;">
+  <div id="high-scores" class="final-score-box" style="display: none; position: fixed;">
     <button id="close-scores-x" class="close-button">✖</button>
     <h3>🏆 Top Scores</h3>
     <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
