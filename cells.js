@@ -835,11 +835,6 @@ document.querySelector('.play-btn').addEventListener('click', () => {
     document.getElementById('settings-panel').style.display = 'flex';
   });
   
-  document.getElementById('close-settings').addEventListener('click', () => {
-    document.getElementById('settings-panel').style.display = 'none';
-    document.getElementById('main-menu').style.display = 'flex';
-  });
-
   document.getElementById('close-settings-bottom').addEventListener('click', () => {
     document.getElementById('settings-panel').style.display = 'none';
     document.getElementById('main-menu').style.display = 'flex';
