@@ -57,7 +57,7 @@ function startGame1() {
     document.getElementById('game-info').style.display = 'block';
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
-
+    document.getElementById('quit-button').style.display = 'block';
     document.getElementById('high-scores').style.display = 'none';
 
     const container = document.getElementById('game-container');
@@ -776,9 +776,10 @@ function endGame() {
     canvas.removeEventListener('touchstart', handleStart);
     canvas.removeEventListener('touchmove', handleMove);
     canvas.removeEventListener('touchend', handleEnd);
+    
 
     document.getElementById('main-menu').style.display = 'flex';
-
+    document.getElementById('quit-button').style.display = 'none';
     document.getElementById('game-info').style.display = 'none';
     canvas.style.display = 'none';
 
@@ -796,7 +797,6 @@ function endGame() {
     document.getElementById('final-mean-score').textContent = mean;
 
     saveHighScores(score, gridSize, movesLeftOriginal, parseFloat(mean));
-    document.getElementById('show-scores').style.display = 'inline-block';
 }
 
 document.querySelector('.play-btn').addEventListener('click', () => {
@@ -851,12 +851,6 @@ window.addEventListener('resize', () => {
  * Display top scores
  * This function retrieves the top scores from localStorage and displays them in a table.
  */
-// Show the "Top Scores" panel when the user clicks the button
-document.getElementById('show-scores').addEventListener('click', () => {
-    populateScoreDropdowns();     // Fill dropdowns with available grid sizes and moves
-    showTopScores();              // Display the scores for the default selection
-    document.getElementById('high-scores').style.display = 'block';  // Show the panel
-});
 
 // Hide the Top Scores panel when "Close" is clicked
 document.getElementById('close-scores').addEventListener('click', () => {
@@ -998,7 +992,7 @@ function showTopScores() {
         table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 10px;">No scores recorded yet.</td></tr>';
     }
 }
-
+  
 // Handle delete scores button
 document.getElementById('delete-scores').addEventListener('click', () => {
     document.getElementById('confirm-delete').style.display = 'flex';
@@ -1022,3 +1016,20 @@ document.getElementById('confirm-delete-yes').addEventListener('click', () => {
 document.getElementById('confirm-delete-cancel').addEventListener('click', () => {
     document.getElementById('confirm-delete').style.display = 'none';
 });
+
+// Show confirm quit panel
+document.getElementById('quit-button').addEventListener('click', () => {
+    document.getElementById('quit-confirm').style.display = 'flex';
+  });
+  
+  // Cancel quit
+  document.getElementById('quit-no').addEventListener('click', () => {
+    document.getElementById('quit-confirm').style.display = 'none';
+  });
+  
+  // Confirm quit
+  document.getElementById('quit-yes').addEventListener('click', () => {
+    document.getElementById('quit-confirm').style.display = 'none';
+    endGame();
+  });
+

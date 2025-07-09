@@ -52,6 +52,7 @@ body {
   
   
   #game-info {
+    position: relative; 
     margin-top: 10px;
     font-size: 0.9rem; /* smaller font size */
     color: #444;       /* softer color */
@@ -64,6 +65,7 @@ body {
   }
   
   #game-container {
+    position: relative; 
     width: 100%;
     display: flex;
     justify-content: center;
@@ -135,6 +137,27 @@ body {
     background: #ccc;
   }
 
+  #quit-button {
+    position: absolute;
+    bottom: 2px;
+    right: 10px; /* Fix from left to right */
+    background-color: red;
+    color: black;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: none; /* Hidden by default, shown in JS */
+  }
+
+  #quit-button:hover {
+    background-color: darkred;
+  }
+  
   canvas {
     display: block;
     margin: auto;
