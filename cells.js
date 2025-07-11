@@ -265,23 +265,42 @@ function isInGrid(x, y) {
 }
 
 function handleStart(evt) {
-    evt.preventDefault();
-    isMouseDown = true;
-    path = [];
-    visitedGroups = new Set();
+    const cell = getCellFromEvent(evt);
+    if (!cell) return;
+    
+    const { x, y } = cell;
+    
+    const clickedIndex = path.findIndex(p => p.x === x && p.y === y);
+    
+    if (clickedIndex !== -1) {
+        // Cell is in path
+        if (clickedIndex === path.length - 1) {
+            // Rejoin at end – continue path
+            isMouseDown = true;
+        } else {
+            // Backtrack to clickedIndex
+            path = path.slice(0, clickedIndex + 1);
+            visitedGroups = new Set(path.map(p => board[p.y][p.x].group));
+            currentGroup = board[y][x].group;
+            loopClosed = false;
+            lastDirection = null;
+            isMouseDown = true;
+        }
+        drawBoard();
+        updateGameInfoVisibility();
+        return;
+    }
+    
+    // Not in current path – start new path
+    path = [{ x, y }];
+    visitedGroups = new Set([board[y][x].group]);
+    currentGroup = board[y][x].group;
     loopClosed = false;
     lastDirection = null;
-
-    const cell = getCellFromEvent(evt);
-    if (!cell) return;    
-    const { x, y } = cell;
-
-    if (isInGrid(x, y)) {
-        path.push({ x, y });
-        currentGroup = board[y][x].group;
-        visitedGroups.add(currentGroup);
-    }
+    isMouseDown = true;
+    
     drawBoard();
+    updateGameInfoVisibility();    
 }
 
 function recomputeDeltaScoresForPath() {
