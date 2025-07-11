@@ -444,6 +444,11 @@ function recomputeDeltaScoresForPathGeometic() {
     }
 }
 
+function updateLoopClosed() {
+    // Loop is closed if the first cell appears again in the path
+    const start = path[0];
+    loopClosed = path.slice(1).some(p => p.x === start.x && p.y === start.y);
+}
 
 function handleMove(evt) {
     if (!isMouseDown) return; // Moving only as long as mouse is down
@@ -476,8 +481,7 @@ function handleMove(evt) {
         lastDirection = path.length >= 2 ? path[path.length - 1].direction : null;
 
         // Recompute loopClosed: true if starting point appears again
-        const start = path[0];
-        loopClosed = path.slice(1).some(p => p.x === start.x && p.y === start.y);
+        updateLoopClosed();
 
         drawBoard();
         updateGameInfoVisibility();
@@ -532,9 +536,7 @@ function handleMove(evt) {
     // Cannot return to the same cell unless it's the first one
     if (path.some(p => p.x === x && p.y === y) && !isFirst) return;
 
-    if (isFirst && path.length >= 3) {
-        loopClosed = true;
-    }
+    updateLoopClosed();
 
     path.push({ x, y, direction });
     recomputeDeltaScoresForPath(); // 🔁 Recompute all deltaScores
@@ -553,6 +555,8 @@ function submitCurrentPath() {
         drawBoard();
         return;
     }
+
+    updateLoopClosed();
 
     let affected = [...path];
 
@@ -580,7 +584,6 @@ function submitCurrentPath() {
     updateInfo();
     path = [];
     visitedGroups = new Set();
-    loopClosed = false;
 
     const header = document.querySelector('h1');
     if (header) {
@@ -642,7 +645,7 @@ function dropCells(callback) {
     // 
     let allowedGroups;
     if (!loopClosed && currentEliminatedGroups.length < groups.length - 1) {
-        // If at two groups were not eliminated and those who were eliminated were probably not completely eliminated becase no loop closed: allow only the remaining groups
+        // If at least two groups were not eliminated and those who were eliminated were probably not completely eliminated because no loop closed: allow only the remaining groups
         allowedGroups = [...Array(groups.length).keys()].filter(g => !currentEliminatedGroups.includes(g));
     } else {
         // If too many groups were eliminated: allow all groups
