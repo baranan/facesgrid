@@ -48,21 +48,7 @@ body {
   .rules-btn {
     background-color: #9C27B0; /* Purple */
     color: #FFFFFF;
-  }
-  
-  
-  #game-info {
-    position: relative; 
-    margin-top: 10px;
-    font-size: 0.9rem; /* smaller font size */
-    color: #444;       /* softer color */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  
-  #game-info span {
-    margin-left: 10px;
-    font-weight: 500;  /* lighter weight */
-  }
+  }  
   
   #game-container {
     position: relative; 
@@ -137,27 +123,51 @@ body {
     background: #ccc;
   }
 
+  #game-info-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    max-width: 700px;
+    margin: 0 auto 10px auto;
+    gap: 16px;
+    height: 40px;
+  }
+  
+  #game-info-row > button,
+  #game-info-row > span {
+    font-size: 1.2rem;
+  }
+  
+  #info-wrapper span {
+    margin: 0 6px;
+  }
+  
   #quit-button {
     position: absolute;
-    bottom: 2px;
-    right: 10px; /* Fix from left to right */
+    top: -8px;
+    right: -8px;
     background-color: red;
-    color: black;
-    border: none;
-    font-size: 1.5rem;
-    font-weight: bold;
-    width: 32px;
-    height: 32px;
+    color: white;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
+    font-size: 0.75rem;
+    line-height: 18px;
+    text-align: center;
     cursor: pointer;
-    z-index: 10;
-    display: none; /* Hidden by default, shown in JS */
+    z-index: 1;
   }
 
   #quit-button:hover {
     background-color: darkred;
   }
-  
+
+  #submit-path {
+    background-color: #4CAF50;
+    color: white;
+  }
+
   canvas {
     display: block;
     margin: auto;
@@ -170,9 +180,7 @@ body {
     touch-action: none;
     box-sizing: border-box;
   }
-  
-  
-  
+
   .circle {
     transition: transform 0.2s ease, opacity 0.2s ease;
   }

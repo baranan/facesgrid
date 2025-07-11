@@ -2,6 +2,8 @@
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
+let gameOn = false; // Track if the game is currently active
+let manualSubmit = false;
 let gridSize = 5;
 let movesLeft = 0;
 let total = 0;
@@ -26,6 +28,7 @@ let currentEliminatedGroups = [];
 let lastSelectedGrid = null;
 let lastSelectedMoves = null;
 
+
 // Preload face images
 function preloadFaceImages(callback) {
     let loaded = 0;
@@ -44,6 +47,7 @@ function preloadFaceImages(callback) {
 }
 
 function startGame1() {
+    gameOn = true; // Set gameOn to true to allow game actions
     score = 0; 
 
     let newFaceSet = document.getElementById('face-set').value;
@@ -51,15 +55,17 @@ function startGame1() {
     movesLeft = parseInt(document.getElementById('moves-limit').value);
     movesLeftOriginal = movesLeft; // Store original moves limit for later use
     scoreDisplayMode = document.getElementById('score-overlay-toggle').value;
+    const mode = document.getElementById('submit-mode').value;
+    manualSubmit = (mode === 'manual');
 
     document.getElementById('controls').style.display = 'none';
     document.getElementById('instructions').style.display = 'none';
-    document.getElementById('game-info').style.display = 'block';
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
-    document.getElementById('quit-button').style.display = 'block';
     document.getElementById('high-scores').style.display = 'none';
 
+    updateGameInfoVisibility();
+    
     const container = document.getElementById('game-container');
     canvas.style.display = 'block'; // restore canvas if hidden
 
@@ -75,6 +81,7 @@ function startGame1() {
     else {
         startGame2();
     }
+
 }
 
 function startGame2() {
@@ -454,6 +461,7 @@ function handleMove(evt) {
         loopClosed = path.slice(1).some(p => p.x === start.x && p.y === start.y);
 
         drawBoard();
+        updateGameInfoVisibility();
         return;
     }
 
@@ -512,25 +520,25 @@ function handleMove(evt) {
     path.push({ x, y, direction });
     recomputeDeltaScoresForPath(); // 🔁 Recompute all deltaScores
     drawBoard();
+    updateGameInfoVisibility();
+      
     return;
 }
 
-function handleEnd(evt) {
-    evt.preventDefault();
-    isMouseDown = false;
+function submitCurrentPath() {
+    updateGameInfoVisibility();
 
     if (path.length < 2) {
         path = [];
         document.querySelector('h1').textContent = `Total Score: ${score}`;
+        drawBoard();
         return;
     }
 
     let affected = [...path];
 
-    // Eliminate all faces from all visited groups
     currentEliminatedGroups = [...visitedGroups];
-    if (loopClosed) {  
-        // Replace 'affected' with all faces from those groups
+    if (loopClosed) {
         affected = [];
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
@@ -541,25 +549,36 @@ function handleEnd(evt) {
             }
         }
     }
+
     let scoreBonus = path.reduce((sum, p) => sum + (p.deltaScore || 0), 0);
     score += scoreBonus;
-  
+
     animateRemoval(affected);
     moves++;
     total += affected.length;
-
     movesLeft--;
-    if (movesLeft <= 0) setTimeout(endGame, 1000);
 
     updateInfo();
-
     path = [];
     visitedGroups = new Set();
+    loopClosed = false;
 
     const header = document.querySelector('h1');
     if (header) {
         header.textContent = `Total Score: ${score}`;
     }
+
+    updateGameInfoVisibility();
+    
+    if (movesLeft <= 0) setTimeout(endGame, 1000);
+}
+
+function handleEnd(evt) {
+    evt.preventDefault();
+    isMouseDown = false;
+
+    if (manualSubmit) return;
+    submitCurrentPath();
 }
 
 function animateRemoval(cells) {
@@ -610,7 +629,6 @@ function dropCells(callback) {
         // If too many groups were eliminated: allow all groups
         allowedGroups = [...Array(groups.length).keys()];
     }
-    console.log(`Allowed groups for new cells: ${allowedGroups.join(', ')}`);    
 
     // Loop through each column to simulate gravity
     for (let x = 0; x < gridSize; x++) {
@@ -770,6 +788,8 @@ function saveHighScores(score, gridSize, movesLimit, mean) {
 
 function endGame() {
 
+    gameOn = false; // Set gameOn to false to prevent further actions
+
     canvas.removeEventListener('mousedown', handleStart);
     canvas.removeEventListener('mousemove', handleMove);
     canvas.removeEventListener('mouseup', handleEnd);
@@ -779,9 +799,9 @@ function endGame() {
     
 
     document.getElementById('main-menu').style.display = 'flex';
-    document.getElementById('quit-button').style.display = 'none';
-    document.getElementById('game-info').style.display = 'none';
     canvas.style.display = 'none';
+
+    updateGameInfoVisibility();
 
     document.querySelector('h1').textContent = '';
 
@@ -840,7 +860,17 @@ document.querySelector('.play-btn').addEventListener('click', () => {
     document.getElementById('main-menu').style.display = 'flex';
   });
   
-  
+ document.getElementById('submit-path').addEventListener('click', submitCurrentPath);
+ document.getElementById('cancel-path').addEventListener('click', () => {
+    path = [];
+    visitedGroups = new Set();
+    document.querySelector('h1').textContent = `Total Score: ${score}`;
+    document.getElementById('submit-path').style.display = 'none';
+    document.getElementById('cancel-path').style.display = 'none';
+    updateGameInfoVisibility();
+    drawBoard();
+  });
+
   
 window.addEventListener('resize', () => {
     resizeCanvas();
@@ -992,6 +1022,50 @@ function showTopScores() {
         table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 10px;">No scores recorded yet.</td></tr>';
     }
 }
+
+function updateGameInfoVisibility() {
+    const submitBtn = document.getElementById('submit-path');
+    const cancelBtn = document.getElementById('cancel-path');
+    const infoWrapper = document.getElementById('info-wrapper');
+    const gameInfoRow = document.getElementById('game-info-row');
+    const quitButton = document.getElementById('quit-button');
+  
+    if (!gameOn) {
+      // Game is not active: hide all buttons and info
+      submitBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      infoWrapper.style.display = 'none';
+      gameInfoRow.style.display = 'none';
+      quitButton.style.display = 'none';
+      return;
+    }
+    else if (!manualSubmit) {
+      // Automatic mode: show info only
+      submitBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      infoWrapper.style.display = 'inline-block';
+      gameInfoRow.style.display = 'flex';
+      quitButton.style.display = 'inline-block'; // Show quit button in automatic mode
+      return;
+    }
+    else {
+        quitButton.style.display = 'inline-block'; // Show quit button in automatic mode
+    // Manual mode
+    if (path.length > 1) {
+        submitBtn.style.display = 'inline-block';
+        cancelBtn.style.display = 'inline-block';
+        infoWrapper.style.display = 'none';
+        gameInfoRow.style.display = 'flex';
+      } else {
+        submitBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        infoWrapper.style.display = 'inline-block';
+        gameInfoRow.style.display = 'flex';
+      }
+    }
+
+  }
+  
   
 // Handle delete scores button
 document.getElementById('delete-scores').addEventListener('click', () => {
