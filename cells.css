@@ -147,7 +147,6 @@ body {
     position: absolute;
     top: -8px;
     right: -8px;
-    background-color: red;
     color: white;
     width: 18px;
     height: 18px;
@@ -160,13 +159,36 @@ body {
   }
 
   #quit-button:hover {
-    background-color: darkred;
+    background-color:darkwhite;
   }
 
   #submit-path {
-    background-color: #4CAF50;
+    background-color: darkwhite;
     color: white;
   }
+
+  /* Image-based buttons for submit, cancel, and exit */
+.icon-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 6px;
+  transition: transform 0.2s ease;
+}
+
+.icon-button img:hover {
+  transform: scale(1.1);
+}
 
   canvas {
     display: block;

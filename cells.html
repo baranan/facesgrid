@@ -17,11 +17,20 @@
   <h1></h1>
 
   <div id="game-info-row" style="display: none;">
-    <div id="quit-button" title="Quit Game">✖</div>
-    <button id="submit-path" style="display: none;">✔️</button>
+    <div id="quit-button" title="Quit Game" class="icon-button" style="display: none;">
+      <img src="images/exit3s.png" alt="Exit" />
+    </div>
+    
+    <button id="submit-path" class="icon-button" style="display: none;">
+      <img src="images/submit.png" alt="Submit" />
+    </button>
+    
     <span id="score"></span>
-    <button id="cancel-path" style="display: none;">🗑️</button>
-  
+    
+    <button id="cancel-path" class="icon-button" style="display: none;">
+      <img src="images/trash3s.png" alt="Cancel" />
+    </button>
+      
     <div id="info-wrapper" style="display: none;">
       <span id="moves-left"></span>
       <span id="mean-score"></span>
