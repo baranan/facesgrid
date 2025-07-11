@@ -311,6 +311,7 @@ function recomputeDeltaScoresForPath() {
 
     // -------- Loop Bonus Calculation --------
     let loopBonus = 0;
+    updateLoopClosed();
     if (loopClosed) {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
@@ -375,71 +376,6 @@ function recomputeDeltaScoresForPath() {
             deltaScore += loopBonus;
         }
 
-        curr.deltaScore = deltaScore;
-    }
-}
-
-// Obsolete: Recompute delta scores for all the cells in the path
-function recomputeDeltaScoresForPathGeometic() {
-    // Track how many straight moves have been made in a row
-    let consecutiveStraightMoves = 0;
-
-    // Ensure the first cell has a delta score of 0 (no move yet)
-    if (path.length > 0) path[0].deltaScore = 0;
-
-    // Compute loop bonus once, if the loop is closed
-    let loopBonus = 0;
-    if (loopClosed) {
-        for (let y = 0; y < gridSize; y++) {
-            for (let x = 0; x < gridSize; x++) {
-                const cell = board[y][x];
-                if (cell && visitedGroups.has(cell.group)) {
-                    loopBonus += 1;
-                }
-            }
-        }
-    }
-
-    // Walk through the path starting from the second cell
-    for (let i = 1; i < path.length; i++) {
-        const prev = path[i - 1];
-        const curr = path[i];
-
-        const dx = curr.x - prev.x;
-        const dy = curr.y - prev.y;
-        const absDx = Math.abs(dx);
-        const absDy = Math.abs(dy);
-
-        const isStraight = (dx === 0 || dy === 0) && (absDx + absDy === 1);
-        const isDiagonal = absDx === 1 && absDy === 1;
-
-        // Assign direction
-        curr.direction = isStraight
-            ? (dx === 0 ? 'vertical' : 'horizontal')
-            : (isDiagonal ? 'diagonal' : null);
-
-        // Update straight-move streak
-        if (isStraight) {
-            consecutiveStraightMoves++;
-        } else {
-            consecutiveStraightMoves = 0;
-        }
-
-        // Compute base score for the move
-        let deltaScore = 0;
-        if (isStraight) {
-            deltaScore += Math.pow(2, consecutiveStraightMoves);
-        }
-        if (isDiagonal) {
-            deltaScore -= 1;
-        }
-
-        // Only the **last** cell in the path should get the loop bonus
-        if (loopClosed && i === path.length - 1) {
-            deltaScore += loopBonus;
-        }
-
-        // Assign final score
         curr.deltaScore = deltaScore;
     }
 }
