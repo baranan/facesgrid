@@ -880,16 +880,6 @@ document.querySelector('.play-btn').addEventListener('click', () => {
   });
   
  document.getElementById('submit-path').addEventListener('click', submitCurrentPath);
- document.getElementById('cancel-path').addEventListener('click', () => {
-    path = [];
-    visitedGroups = new Set();
-    document.querySelector('h1').textContent = `Total Score: ${score}`;
-    document.getElementById('submit-path').style.display = 'none';
-    document.getElementById('cancel-path').style.display = 'none';
-    updateGameInfoVisibility();
-    drawBoard();
-  });
-
   
 window.addEventListener('resize', () => {
     resizeCanvas();
@@ -1044,7 +1034,6 @@ function showTopScores() {
 
 function updateGameInfoVisibility() {
     const submitBtn = document.getElementById('submit-path');
-    const cancelBtn = document.getElementById('cancel-path');
     const infoWrapper = document.getElementById('info-wrapper');
     const gameInfoRow = document.getElementById('game-info-row');
     const quitButton = document.getElementById('quit-button');
@@ -1052,7 +1041,6 @@ function updateGameInfoVisibility() {
     if (!gameOn) {
       // Game is not active: hide all buttons and info
       submitBtn.style.display = 'none';
-      cancelBtn.style.display = 'none';
       infoWrapper.style.display = 'none';
       gameInfoRow.style.display = 'none';
       quitButton.style.display = 'none';
@@ -1061,7 +1049,6 @@ function updateGameInfoVisibility() {
     else if (!manualSubmit) {
       // Automatic mode: show info only
       submitBtn.style.display = 'none';
-      cancelBtn.style.display = 'none';
       infoWrapper.style.display = 'inline-block';
       gameInfoRow.style.display = 'flex';
       quitButton.style.display = 'inline-block'; // Show quit button in automatic mode
@@ -1072,12 +1059,10 @@ function updateGameInfoVisibility() {
     // Manual mode
     if (path.length > 1) {
         submitBtn.style.display = 'inline-block';
-        cancelBtn.style.display = 'inline-block';
         infoWrapper.style.display = 'none';
         gameInfoRow.style.display = 'flex';
       } else {
         submitBtn.style.display = 'none';
-        cancelBtn.style.display = 'none';
         infoWrapper.style.display = 'inline-block';
         gameInfoRow.style.display = 'flex';
       }

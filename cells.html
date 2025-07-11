@@ -18,19 +18,13 @@
 
   <div id="game-info-row" style="display: none;">
     <div id="quit-button" title="Quit Game" class="icon-button" style="display: none;">
-      <img src="images/exit3s.png" alt="Exit" />
+      <img src="images/exit4s.png" alt="Exit" />
     </div>
     
-    <button id="submit-path" class="icon-button" style="display: none;">
-      <img src="images/submit.png" alt="Submit" />
-    </button>
+    <button id="submit-path" class="submit-path-button" style="display: none;">LOVE</button>
     
     <span id="score"></span>
-    
-    <button id="cancel-path" class="icon-button" style="display: none;">
-      <img src="images/trash3s.png" alt="Cancel" />
-    </button>
-      
+          
     <div id="info-wrapper" style="display: none;">
       <span id="moves-left"></span>
       <span id="mean-score"></span>
@@ -58,8 +52,8 @@
         <label>
           Submit Mode:
           <select id="submit-mode">
-            <option value="auto">Automatic</option>
-            <option value="manual" selected>Buttons</option>
+            <option value="auto" selected>Automatic</option>
+            <option value="manual">Buttons</option>
           </select>
         </label>        
         <button id="close-settings-bottom" class="secondary-button">Close Settings</button>
