@@ -3,6 +3,7 @@ const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
 let gameOn = false; // Track if the game is currently active
+let quit = false; // Track if the game was quit
 let manualSubmit = false;
 let gridSize = 5;
 let movesLeft = 0;
@@ -29,6 +30,34 @@ let lastSelectedGrid = null;
 let lastSelectedMoves = null;
 
 
+function saveSettings() {
+    const settings = {
+      faceSet: document.getElementById('face-set').value,
+      gridSize: parseInt(document.getElementById('grid-size').value),
+      movesLeft: parseInt(document.getElementById('moves-limit').value),
+      scoreDisplayMode: document.getElementById('score-overlay-toggle').value,
+      submitMode: document.getElementById('submit-mode').value
+    };
+    localStorage.setItem('savedSettings', JSON.stringify(settings));
+}
+document.getElementById('face-set').addEventListener('change', saveSettings);
+document.getElementById('grid-size').addEventListener('change', saveSettings);
+document.getElementById('moves-limit').addEventListener('change', saveSettings);
+document.getElementById('score-overlay-toggle').addEventListener('change', saveSettings);
+document.getElementById('submit-mode').addEventListener('change', saveSettings);
+
+
+function loadSavedSettings() {
+    const saved = JSON.parse(localStorage.getItem('savedSettings'));
+    if (!saved) return;
+  
+    document.getElementById('face-set').value = saved.faceSet || 'women';
+    document.getElementById('grid-size').value = saved.gridSize || 5;
+    document.getElementById('moves-limit').value = saved.movesLeft || 30;
+    document.getElementById('score-overlay-toggle').value = saved.scoreDisplayMode || 'header';
+    document.getElementById('submit-mode').value = saved.submitMode || 'auto';
+}
+  
 // Preload face images
 function preloadFaceImages(callback) {
     let loaded = 0;
@@ -49,6 +78,7 @@ function preloadFaceImages(callback) {
 function startGame1() {
     gameOn = true; // Set gameOn to true to allow game actions
     score = 0; 
+    quit = false; // Reset quit state
 
     let newFaceSet = document.getElementById('face-set').value;
     gridSize = parseInt(document.getElementById('grid-size').value);
@@ -95,6 +125,7 @@ function startGame2() {
     generateBoard();
     updateInfo();
     drawBoard();
+    positionQuitButton();
 
     canvas.addEventListener('mousedown', handleStart);
     canvas.addEventListener('mousemove', handleMove);
@@ -768,13 +799,14 @@ function endGame() {
     //document.getElementById('controls').style.display = 'block';
     document.getElementById('controls').style.removeProperty('display');
 
+    if (!quit) {       
+        document.getElementById('game-over').style.display = 'block';
+        document.getElementById('final-score').textContent = score;
+        const mean = moves > 0 ? (score / moves).toFixed(2) : '0';
+        document.getElementById('final-mean-score').textContent = mean;
 
-    document.getElementById('game-over').style.display = 'block';
-    document.getElementById('final-score').textContent = score;
-    const mean = moves > 0 ? (score / moves).toFixed(2) : '0';
-    document.getElementById('final-mean-score').textContent = mean;
-
-    saveHighScores(score, gridSize, movesLeftOriginal, parseFloat(mean));
+        saveHighScores(score, gridSize, movesLeftOriginal, parseFloat(mean));
+    }
 }
 
 document.querySelector('.play-btn').addEventListener('click', () => {
@@ -823,6 +855,7 @@ document.querySelector('.play-btn').addEventListener('click', () => {
 window.addEventListener('resize', () => {
     resizeCanvas();
     drawBoard();
+    positionQuitButton();
 });
 
 /*
@@ -1009,6 +1042,31 @@ function updateGameInfoVisibility() {
 
   }
   
+function positionQuitButton() {
+    const canvas = document.getElementById('game-canvas');
+    const h1 = document.querySelector('h1');
+    const quitButton = document.getElementById('quit-button');
+
+    if (!canvas || !h1 || !quitButton) return;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const h1Rect = h1.getBoundingClientRect();
+    const parentRect = quitButton.offsetParent.getBoundingClientRect();
+
+    // Align right edge of button with right edge of canvas
+    const right = canvasRect.right - parentRect.left;
+    // Align top with top of #score (relative to offsetParent)
+    const top = h1Rect.top - parentRect.top;
+    console.log('h1Rect', h1Rect);
+    console.log('parentRect', parentRect);
+    console.log('right', right);
+    console.log('top', top);
+
+    quitButton.style.position = 'absolute';
+    quitButton.style.left = `${right - quitButton.offsetWidth}px`;
+    quitButton.style.top = `${top}px`;
+}
+
   
 // Handle delete scores button
 document.getElementById('delete-scores').addEventListener('click', () => {
@@ -1047,6 +1105,8 @@ document.getElementById('quit-button').addEventListener('click', () => {
   // Confirm quit
   document.getElementById('quit-yes').addEventListener('click', () => {
     document.getElementById('quit-confirm').style.display = 'none';
+    quit = true; // Set quit flag to true
     endGame();
   });
 
+  loadSavedSettings();
