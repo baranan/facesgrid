@@ -29,6 +29,7 @@ let currentEliminatedGroups = [];
 let lastSelectedGrid = null;
 let lastSelectedMoves = null;
 
+let correctSolvablePath = null;
 
 function saveSettings() {
     const settings = {
@@ -543,7 +544,9 @@ function submitCurrentPath() {
     let scoreBonus = path.reduce((sum, p) => sum + (p.deltaScore || 0), 0);
     score += scoreBonus;
 
-    animateRemoval(affected);
+    // Remove elimenated and replace them. 
+    animateRemoval(affected, (affected.length === gridSize * gridSize && gridSize < 8), handleAfterRemoval);
+
     moves++;
     total += affected.length;
     movesLeft--;
@@ -570,39 +573,74 @@ function handleEnd(evt) {
     submitCurrentPath();
 }
 
-function animateRemoval(cells) {
+/**
+ * Animates the removal of cells and then calls a follow-up function.
+ * 
+ * @param {Array} cells - Array of objects with {x, y} indicating which cells to animate/remove.
+ * @param {boolean} solvable - If true, generate a fully solvable board after animation.
+ * @param {Function} onFinish - Function to run after the animation ends. It receives (solvable) as argument.
+ */
+function animateRemoval(cells, solvable = false, onFinish = null) {
+    // Step 1: Mark all target cells as "exploding" and initialize animation scale
     for (const { x, y } of cells) {
-        const cell = board[y][x];
-        if (!cell) continue;
-        cell.exploding = true;
-        cell.scale = 1.0;
+      const cell = board[y][x];
+      if (!cell) continue;            // Skip if cell already null
+      cell.exploding = true;          // Flag this cell for visual explosion
+      cell.scale = 1.0;               // Start scale for shrinking animation
     }
-
-    const totalFrames = 30;
-    let frame = 0;
-
+  
+    const totalFrames = 30;           // Number of animation frames (~0.5s at 60fps)
+    let frame = 0;                    // Current frame index
+  
+    /**
+     * Internal function: executes one frame of the explosion animation,
+     * shrinking each marked cell and redrawing the board.
+     */
     function step() {
-        for (const { x, y } of cells) {
-            const cell = board[y][x];
-            if (!cell || !cell.exploding) continue;
-            cell.scale = 1 - frame / totalFrames;
-            if (cell.scale < 0) cell.scale = 0;
+      // Step 2: Update cell scale for all exploding cells
+      for (const { x, y } of cells) {
+        const cell = board[y][x];
+        if (!cell || !cell.exploding) continue;
+        cell.scale = 1 - frame / totalFrames;      // Gradually shrink cell
+        if (cell.scale < 0) cell.scale = 0;        // Clamp scale to 0
+      }
+  
+      // Step 3: Redraw board to reflect updated cell states
+      drawBoard();
+      frame++;
+  
+      // Step 4: Schedule next animation frame or finalize when done
+      if (frame <= totalFrames) {
+        // Not done yet: schedule next frame
+        requestAnimationFrame(step);
+      } else {
+        // Animation complete: pass control to the caller
+        if (typeof onFinish === 'function') {
+          onFinish(solvable);       // Caller decides what to do next
         }
-
-        drawBoard();
-        frame++;
-        if (frame <= totalFrames) {
-            requestAnimationFrame(step);
-        } else {
-            for (const { x, y } of cells) {
-                board[y][x] = null;
-            }
-            dropCells(() => drawBoard());
-        }
+      }
     }
-
+  
+    // Start animation loop
     step();
-}
+  }
+  
+  function handleAfterRemoval(solvable) {
+    if (solvable) {
+      createSolvableBoard(); // 🎯 full-board-generation path
+    } else {
+      // Normal behavior: clear removed cells and drop new ones
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          if (!board[y][x] || board[y][x].exploding) {
+            board[y][x] = null;
+          }
+        }
+      }
+      dropCells(() => drawBoard());
+    }
+  }
+  
 
 // Drop cells down to fill empty spaces
 function dropCells(callback) {
@@ -774,6 +812,238 @@ function saveHighScores(score, gridSize, movesLimit, mean) {
     topMean = topMean.slice(0, 10);
     localStorage.setItem(keyMean, JSON.stringify(topMean));
 }
+
+    // Main function to generate a hBoard that can be fully eliminated in one loop
+    function generateFullyEliminatableBoard(gridSize, numGroups, facesPerGroup) {
+        console.log("Generating Hamiltonian board with size:", gridSize, "and groups:", numGroups);
+        const size = gridSize;
+        const totalCells = size * size;
+        const visited = createVisitedGrid(size);
+        const hPath = [];
+    
+        const directions = generateAllDirections(); // 8-way movement
+    
+        // Step 1: Generate a Hamiltonian loop (visits all cells, ends where it started)
+        const success = generateHamiltonianLoop(hPath, visited, size, totalCells, directions);
+    
+        if (!success) {
+            console.warn("❌ Hamiltonian loop generation failed (max attempts reached)");
+            return null;
+        }
+    
+        // Step 2: Assign groups along the hPath, respecting movement constraints
+        const groupAssignments = assignGroupsTohPath(hPath, numGroups);
+    
+        // Step 3: Check if all group indices were used
+        const usedGroups = new Set(groupAssignments);
+        if (usedGroups.size < numGroups) {
+            console.warn("⚠️ Not all groups were used. Found:", usedGroups.size, "Expected:", numGroups);
+            return null;
+        }
+
+        // Step 4: Build the board
+        const hBoard = applyhPathTohBoard(hPath, groupAssignments, size, facesPerGroup);
+        console.log("✔ Generated Hamiltonian board with all groups:", hBoard);
+        
+        return { hBoard, hPath};
+    
+  };
+
+  function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }  
+  
+  // Helper: Create a 2D visited grid
+  function createVisitedGrid(size) {
+    return Array.from({ length: size }, () => Array(size).fill(false));
+  }
+  
+  // Helper: Return 8 possible directions (4 straight, 4 diagonal)
+  function generateAllDirections() {
+    return [
+      [0, 1], [1, 0], [0, -1], [-1, 0], // straight
+      [1, 1], [-1, -1], [1, -1], [-1, 1] // diagonal
+    ];
+  }
+  
+  // Helper: Generate a Hamiltonian loop using DFS
+  function generateHamiltonianLoop(hPath, visited, size, totalCells, directions) {
+    // Try repeatedly with random start points until successful
+    const MAX_ATTEMPTS = 3;
+    const MAX_MILLIS = 500; // maximum time to find Hamiltonian loop in milliseconds
+    const startTime = performance.now();
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        console.log(`Attempt ${attempt + 1} to generate Hamiltonian loop...`);
+        // Reset hPath and visited grid
+        hPath.length = 0;
+        for (let row of visited) row.fill(false);
+
+        const startX = Math.floor(Math.random() * size);
+        const startY = Math.floor(Math.random() * size);
+
+        try {
+            if (dfs(startX, startY, 1)) {
+                console.log("✔ Hamiltonian loop found in time");
+                return true;
+            }
+            } catch (e) {
+            if (e.message === "DFS timed out") {
+                console.warn("❌ generateHamiltonianLoop aborted (DFS timed out)");
+                return false;
+            }
+            throw e; // unexpected error
+        }
+    }
+  
+    // Give up after too many tries
+    return false;
+  
+    // ----- Recursive Depth-First Search -----
+    function dfs(x, y, depth) {
+        // 💣 Abort early if we've exceeded the allowed time
+        if (performance.now() - startTime > MAX_MILLIS) {
+          throw new Error("DFS timed out"); // Let the loop above catch it
+        }
+      
+        hPath.push({ x, y });
+        visited[y][x] = true;
+      
+        if (depth === totalCells) {
+          const first = hPath[0];
+          const dx = first.x - x;
+          const dy = first.y - y;
+          const canCloseLoop =
+            Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (dx !== 0 || dy !== 0);
+          if (canCloseLoop) {
+            hPath.push({ x: first.x, y: first.y });
+            return true;
+          } else {
+            visited[y][x] = false;
+            hPath.pop();
+            return false;
+          }
+        }
+      
+        const neighbors = getAvailableNeighborsSorted(x, y);
+        for (const [nx, ny] of neighbors) {
+          if (dfs(nx, ny, depth + 1)) return true;
+        }
+      
+        visited[y][x] = false;
+        hPath.pop();
+        return false;
+    }
+      
+  
+    // ----- Heuristic: Sort neighbors by how "trapped" they are -----
+    function getAvailableNeighborsSorted(x, y) {
+      const options = [];
+      for (const [dx, dy] of directions) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < size && ny < size && !visited[ny][nx]) {
+          const onward = countUnvisitedNeighbors(nx, ny);
+          options.push([[nx, ny], onward]);
+        }
+      }
+  
+      // Sort by fewest onward moves (Warnsdorff’s Rule)
+      options.sort((a, b) => {
+        // First compare by onward options
+        if (a[1] !== b[1]) return a[1] - b[1];
+      
+        // If tied, prefer diagonal
+        const [ax, ay] = a[0];
+        const [bx, by] = b[0];
+        const isDiagonalA = Math.abs(ax - x) === 1 && Math.abs(ay - y) === 1;
+        const isDiagonalB = Math.abs(bx - x) === 1 && Math.abs(by - y) === 1;
+      
+        return isDiagonalB - isDiagonalA; // Prefer diagonals
+      });
+      return options.map(o => o[0]);
+    }
+  
+    // Count how many unvisited neighbors a cell has (used for sorting)
+    function countUnvisitedNeighbors(x, y) {
+      let count = 0;
+      for (const [dx, dy] of directions) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < size && ny < size && !visited[ny][nx]) {
+          count++;
+        }
+      }
+      return count;
+    }
+  }
+  
+  
+  // Helper: Assign a group to each cell in the hPath, following movement rules
+function assignGroupsTohPath(hPath, groupSize) {
+    const groupPool = Array.from({ length: groupSize }, (_, i) => i);
+    shuffleArray(groupPool); // Randomize group pool
+  
+    const groupAssignments = [];
+    const usedGroups = new Set();
+  
+    // Start with the first group
+    let currentGroup = groupPool[0];
+    groupAssignments[0] = currentGroup;
+    usedGroups.add(currentGroup);
+  
+    // Track unused groups (for diversity)
+    const unusedGroups = groupPool.slice(1);
+  
+    // Iterate through the hPath and assign groups based on movement
+    for (let i = 1; i < hPath.length; i++) {
+      const prev = hPath[i - 1];
+      const curr = hPath[i];
+  
+      const dx = curr.x - prev.x;
+      const dy = curr.y - prev.y;
+      const isDiagonal = Math.abs(dx) === 1 && Math.abs(dy) === 1;
+  
+      if (isDiagonal) {
+        let newGroup;
+  
+        // Prefer unused groups for more diversity
+        if (unusedGroups.length > 0) {
+          newGroup = unusedGroups.pop();
+        } else {
+          // Fallback to a different group than current
+          const candidates = groupPool.filter(g => g !== currentGroup);
+          newGroup = candidates[Math.floor(Math.random() * candidates.length)];
+        }
+  
+        currentGroup = newGroup;
+        usedGroups.add(currentGroup);
+      }
+  
+      groupAssignments[i] = currentGroup;
+    }
+  
+    return groupAssignments;
+}
+
+  // Helper: Populate the global hBoard using the hPath and group values
+function applyhPathTohBoard(hPath, groupAssignments, size, facesPerGroup) {
+    hBoard = Array.from({ length: size }, () => Array(size).fill(null));
+  
+    for (let i = 0; i < hPath.length; i++) {
+      const { x, y } = hPath[i];
+      hBoard[y][x] = {
+        group: groupAssignments[i],
+        faceIndex: Math.floor(Math.random() * facesPerGroup),
+        exploding: false
+      };
+    }
+
+    return hBoard;
+  }
 
 function endGame() {
 
@@ -1057,16 +1327,40 @@ function positionQuitButton() {
     const right = canvasRect.right - parentRect.left;
     // Align top with top of #score (relative to offsetParent)
     const top = h1Rect.top - parentRect.top;
-    console.log('h1Rect', h1Rect);
-    console.log('parentRect', parentRect);
-    console.log('right', right);
-    console.log('top', top);
 
     quitButton.style.position = 'absolute';
     quitButton.style.left = `${right - quitButton.offsetWidth}px`;
     quitButton.style.top = `${top}px`;
 }
 
+ // Create a board, in which all cells can be visited in one path
+ function createSolvableBoard() {
+    const result = generateFullyEliminatableBoard(gridSize, groups.length, facesPerGroup);
+  
+    if (!result) {
+      console.warn("Falling back to random board");
+      generateBoard(); // default random board
+      dropCells(() => drawBoard());
+      return;
+    }
+  
+    board = result.hBoard;
+    correctSolvablePath = result.hPath;
+    dropCells(() => drawBoard());
+}
+  
+// Only for debug: Show the correct solution for the board created by hamilton.js
+window.visualizePath = function() {
+    if (!Array.isArray(correctSolvablePath) || correctSolvablePath.length === 0) {
+      console.warn("Invalid path passed to visualizePath.");
+      return;
+    }
+    path = correctSolvablePath;
+    recomputeDeltaScoresForPath();
+    drawBoard();
+    console.log("✔ Path visualized:", path);
+  };
+  
   
 // Handle delete scores button
 document.getElementById('delete-scores').addEventListener('click', () => {
