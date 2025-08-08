@@ -34,32 +34,48 @@
     </div> 
 
     <div id="settings-panel" class="instructions-panel" style="display: none;">
-      <div style="position: relative; max-width: 400px; width: 100%;">
+      <div style="position: relative; max-width: 400px; width: 100%; margin: 0 auto;">
         <div id="controls">
-          <label style="display: inline-flex; align-items: center; gap: 5px;">
-            Set: <select id="face-set">
-              <option value="women" selected>Women</option>
-              <option value="men">Men</option>
-            </select>
-          </label>    
-          <label>Grid Size: <input type="number" id="grid-size" value="5" min="3" max="10" /></label>
-          <label>Moves Limit: <input type="number" id="moves-limit" value="30" /></label>
-          <label style="display: inline-flex; align-items: center; gap: 1px;">
-            Turn Score:
-            <select id="score-overlay-toggle">
-              <option value="canvas">In grid</option>
-              <option value="header" selected>Top</option>
-            </select>
-          </label>
-          <label>
-            Submit Mode:
-            <select id="submit-mode">
-              <option value="auto">Automatic</option>
-              <option value="manual" selected>Buttons</option>
-            </select>
-          </label>        
+          <div class="setting-group">
+            <label>Face Set:</label>
+            <div class="button-group" id="face-set-group">
+              <button class="toggle-btn selected" data-value="women">Women</button>
+              <button class="toggle-btn" data-value="men">Men</button>
+            </div>
+          </div>
+        
+          <div class="setting-group">
+            <label>Grid Size:</label>
+            <div class="button-group" id="grid-size-group">
+              <button class="toggle-btn selected" data-value="4">4</button>
+              <button class="toggle-btn" data-value="5">5</button>
+              <button class="toggle-btn" data-value="6">6</button>
+            </div>
+          </div>
+        
+          <div class="setting-group">
+            <label>Moves:</label>
+            <input id="moves-limit" type="number" value="30" min="1" max="99" />
+          </div>
+        
+          <div class="setting-group">
+            <label>Running Score Display:</label>
+            <div class="button-group" id="score-overlay-toggle-group">
+              <button class="toggle-btn selected" data-value="header">Top</button>
+              <button class="toggle-btn" data-value="canvas">In Grid</button>
+            </div>
+          </div>
+        
+          <div class="setting-group">
+            <label>Submit Mode:</label>
+            <div class="button-group" id="submit-mode-group">
+              <button class="toggle-btn" data-value="auto">Automatic</button>
+              <button class="toggle-btn selected" data-value="manual">Button</button>
+            </div>
+          </div>
+        
           <button id="close-settings-bottom" class="secondary-button">Close Settings</button>
-        </div>
+        </div>        
       </div>
     </div>
     

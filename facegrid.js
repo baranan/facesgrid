@@ -423,11 +423,11 @@ const PathLogic = {
       } else {
         ctx.save();
         ctx.globalAlpha = 0.12;
-        ctx.fillStyle = turnScore >= 0 ? 'green' : 'red';
+        ctx.fillStyle = GameState.turnScore >= 0 ? 'green' : 'red';
         ctx.font = `${GameState.canvas.width * 0.67}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(turnScore, GameState.canvas.width / 2, GameState.canvas.height / 2);
+        ctx.fillText(GameState.turnScore, GameState.canvas.width / 2, GameState.canvas.height / 2);
         ctx.restore();
       }
     },
@@ -736,13 +736,19 @@ const Hamiltonian = {
     // =====================
     init() {
         // Read settings from controls
-        GameState.faceSet = document.getElementById('face-set').value;
-        GameState.gridSize = parseInt(document.getElementById('grid-size').value);
-        GameState.movesLeft = parseInt(document.getElementById('moves-limit').value);
+        GameState.faceSet = document.querySelector('#face-set-group .selected')?.dataset.value || 'women';
+        GameState.gridSize = parseInt(document.querySelector('#grid-size-group .selected')?.dataset.value || '5');
+        
+        const movesInput = document.getElementById('moves-limit');
+        let raw = parseInt(movesInput.value || '30');
+        if (isNaN(raw)) raw = 30;
+        GameState.movesLeft = Math.min(99, Math.max(1, raw));
+        movesInput.value = GameState.movesLeft; // correct the visible field
         GameState.movesLimit = GameState.movesLeft;
-        GameState.scoreDisplayMode = document.getElementById('score-overlay-toggle').value;
-        const mode = document.getElementById('submit-mode').value;
-        GameState.manualSubmit = (mode === 'manual');
+        
+        GameState.scoreDisplayMode = document.querySelector('#score-overlay-toggle-group .selected')?.dataset.value || 'header';
+        const mode = document.querySelector('#submit-mode-group .selected')?.dataset.value || 'manual';
+        GameState.manualSubmit = (mode === 'manual');        
     
         // Reset counters
         GameState.totalScore = 0;
@@ -1200,34 +1206,84 @@ const ScoreManager = {
   // Settings Manager
   // =====================
   const SettingsManager = {
+    // Save current UI selections to localStorage
     save() {
       const settings = {
-        faceSet: document.getElementById('face-set').value,
-        gridSize: parseInt(document.getElementById('grid-size').value),
-        movesLeft: parseInt(document.getElementById('moves-limit').value),
-        scoreDisplayMode: document.getElementById('score-overlay-toggle').value,
-        submitMode: document.getElementById('submit-mode').value
+        faceSet: SettingsManager.getSelectedValue('face-set-group'),
+        gridSize: parseInt(SettingsManager.getSelectedValue('grid-size-group')),
+        movesLeft: (() => {
+          const raw = parseInt(document.getElementById('moves-limit').value || '30');
+          return Math.min(99, Math.max(1, raw)); // Clamp to [1, 99]
+        })(),
+        scoreDisplayMode: SettingsManager.getSelectedValue('score-overlay-toggle-group'),
+        submitMode: SettingsManager.getSelectedValue('submit-mode-group')
       };
       localStorage.setItem('savedSettings', JSON.stringify(settings));
     },
   
+    // Load settings from localStorage and apply them to the UI
     load() {
       const saved = JSON.parse(localStorage.getItem('savedSettings'));
       if (!saved) return;
   
-      document.getElementById('face-set').value = saved.faceSet || 'women';
-      document.getElementById('grid-size').value = saved.gridSize || 5;
+      SettingsManager.selectValue('face-set-group', saved.faceSet || 'women');
+      SettingsManager.selectValue('grid-size-group', String(saved.gridSize || 5));
+      SettingsManager.selectValue('score-overlay-toggle-group', saved.scoreDisplayMode || 'header');
+      SettingsManager.selectValue('submit-mode-group', saved.submitMode || 'manual');
       document.getElementById('moves-limit').value = saved.movesLeft || 30;
-      document.getElementById('score-overlay-toggle').value = saved.scoreDisplayMode || 'header';
-      document.getElementById('submit-mode').value = saved.submitMode || 'auto';
+    },
+  
+    // Bind click listeners to a toggle group so selection updates correctly
+    bindToggleGroup(groupId) {
+      const group = document.getElementById(groupId);
+      if (!group) return;
+  
+      const buttons = group.querySelectorAll('.toggle-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          SettingsManager.save();
+        });
+      });
+    },
+  
+    // Return selected value for a given toggle button group
+    getSelectedValue(groupId) {
+      const selected = document.querySelector(`#${groupId} .selected`);
+      return selected ? selected.dataset.value : null;
+    },
+  
+    // Programmatically select a value in a toggle button group
+    selectValue(groupId, value) {
+      const group = document.getElementById(groupId);
+      if (!group) return;
+      group.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.value === value);
+      });
+    },
+  
+    // Initialize all settings controls
+    init() {
+      ['face-set-group', 'grid-size-group', 'score-overlay-toggle-group', 'submit-mode-group']
+        .forEach(SettingsManager.bindToggleGroup);
+
+        const movesInput = document.getElementById('moves-limit');
+        if (movesInput) {
+          movesInput.addEventListener('input', () => {
+            let val = parseInt(movesInput.value);
+            //if (isNaN(val)) val = 1;
+            if (val < 1) val = 1;
+            if (val > 99) val = 99;
+            movesInput.value = val; 
+            SettingsManager.save();
+          });
+        }
+
+        SettingsManager.load();
     }
   };
   
-  // Bind setting change listeners
-  ['face-set', 'grid-size', 'moves-limit', 'score-overlay-toggle', 'submit-mode'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', SettingsManager.save);
-  });
-    
   // =====================
   // Delete and Quit Confirm
   // =====================
@@ -1368,7 +1424,7 @@ const ScoreManager = {
   // =====================
   // Restore Saved Settings
   // =====================
-  SettingsManager.load(); // Immediately restore settings from localStorage on page load
+  SettingsManager.init(); // initialization of settings UI
   
   // Optional: show menu initially
   document.getElementById('main-menu').style.display = 'flex';
