@@ -1,0 +1,7 @@
+- Bug: After deleting scores, nothing is shown.
+- Limit grid to 4, 5, or 6 (perhaps no dropdown is needed).
+- Perhaps no dropdown needed for automatic/manual and for men/women.
+- Add up-to 1000 points mode (or any other target score)
+- Add up-to 250 eliminations (or any other target score)
+- Add vs. AI.
+- Send game data to my server?

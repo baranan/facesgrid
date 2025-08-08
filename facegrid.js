@@ -87,10 +87,11 @@ const GameState = {
     },
   
     // Update whether the current path forms a closed loop
-    updateLoopClosed() {
+    getLoopClosed() {
       const start = GameState.path[0];
-      GameState.loopClosed = GameState.path.slice(1).some(p => p.x === start.x && p.y === start.y);
-    }
+      return GameState.path.length > 1 &&
+             GameState.path.slice(1).some(p => p.x === start.x && p.y === start.y);
+    }    
   };
   
   // =====================
@@ -177,10 +178,15 @@ const GameState = {
     // =====================
     dropCells(callback) {
         GameState.fallingCells = [];
-    
-        const allowedGroups = (!GameState.loopClosed && GameState.visitedGroups.size < GameState.groups.length - 1)
-        ? GameState.groups.map((_, i) => i).filter(g => !GameState.visitedGroups.has(g))
-        : GameState.groups.map((_, i) => i);
+
+        // By default, allow all groups
+        let allowedGroups = GameState.groups.map((_, i) => i);
+        if (!Utils.getLoopClosed() &&  GameState.path.length < 7 && GameState.visitedGroups.size < GameState.groups.length - 1) 
+        { // If the path is short and it is not a loop, and there are at least two unvisited groups, allow all unvisited groups 
+          allowedGroups = GameState.groups
+            .map((_, i) => i) // all indices
+            .filter(i => !GameState.visitedGroups.has(i));
+        }
     
         for (let x = 0; x < GameState.gridSize; x++) {
         let pointer = GameState.gridSize - 1;
@@ -230,7 +236,6 @@ const PathLogic = {
         GameState.visitedGroups = new Set();
         GameState.currentGroup = null;
         GameState.lastDirection = null;
-        GameState.loopClosed = false;
 
         UI.updateGameInfoVisibility();
     },
@@ -241,7 +246,6 @@ const PathLogic = {
       GameState.currentGroup = GameState.board[y][x].group;
       GameState.visitedGroups = new Set([GameState.currentGroup]);
       GameState.lastDirection = null;
-      GameState.loopClosed = false;
     },
   
     // Extend the path by one cell
@@ -266,9 +270,8 @@ const PathLogic = {
         GameState.path[0].deltaScore = 0;
       
         // -------- Loop Bonus Calculation --------
-        Utils.updateLoopClosed();
         let loopBonus = 0;
-        if (GameState.loopClosed) {
+        if (Utils.getLoopClosed()) {
           for (let y = 0; y < GameState.gridSize; y++) {
             for (let x = 0; x < GameState.gridSize; x++) {
               const cell = GameState.board[y][x];
@@ -321,7 +324,7 @@ const PathLogic = {
           }
       
           // Add loop bonus to final step only
-          if (GameState.loopClosed && i === GameState.path.length - 1) {
+          if (Utils.getLoopClosed() && i === GameState.path.length - 1) {
             deltaScore += loopBonus;
           }
       
@@ -655,7 +658,6 @@ const Hamiltonian = {
           GameState.path = GameState.path.slice(0, index + 1);
           GameState.visitedGroups = new Set(GameState.path.map(p => GameState.board[p.y][p.x].group));
           GameState.currentGroup = GameState.board[y][x].group;
-          GameState.loopClosed = false;
           GameState.lastDirection = null;
           GameState.isMouseDown = true;
         }
@@ -687,7 +689,7 @@ const Hamiltonian = {
       if (GameState.path.length === 0) return;
       const last = GameState.path[GameState.path.length - 1];
       if (last.x === x && last.y === y) return;
-      if (GameState.loopClosed) return;
+      if (Utils.getLoopClosed()) return;
   
       const dx = x - last.x;
       const dy = y - last.y;
@@ -708,7 +710,6 @@ const Hamiltonian = {
   
       const direction = isStraight ? (dx === 0 ? 'vertical' : 'horizontal') : 'diagonal';
       PathLogic.addToPath(x, y, direction);
-      Utils.updateLoopClosed();
 
       UI.updateGameInfoVisibility();
       
@@ -792,10 +793,8 @@ const Hamiltonian = {
 
         GameState.totalScore += GameState.turnScore; 
 
-        Utils.updateLoopClosed();
-
         let affected = [...GameState.path];
-        if (GameState.loopClosed) {
+        if (Utils.getLoopClosed()) {
         affected = [];
         for (let y = 0; y < GameState.gridSize; y++) {
             for (let x = 0; x < GameState.gridSize; x++) {
@@ -811,9 +810,8 @@ const Hamiltonian = {
             GameState.board[y][x] = null;
         }
 
-        const solvable = affected.length === GameState.gridSize * GameState.gridSize && GameState.visitedGroups.size == GameState.groups.length && GameState.gridSize < 8;
+        const solvable = (affected.length === GameState.gridSize * GameState.gridSize) && (GameState.visitedGroups.size == GameState.groups.length) && (GameState.gridSize < 8) && (GameState.path.length <= GameState.gridSize * GameState.gridSize / 2);
         Animation.animateRemoval(affected, solvable, (solvable) => {
-          PathLogic.clear(); // Always hide path immediately after animation
           if (solvable) {
             BoardLogic.createSolvableBoard();
           } else {
@@ -822,6 +820,7 @@ const Hamiltonian = {
               UI.updateGameInfoVisibility();
             });
           }
+          PathLogic.clear(); // Always hide path immediately after animation
         });              
           
         GameState.moves++;
@@ -1068,6 +1067,7 @@ const UI = {
         document.getElementById('high-scores').style.display = 'none';
         document.getElementById('confirm-delete').style.display = 'none';
         document.getElementById('quit-confirm').style.display = 'none';
+        document.getElementById('game-over').style.display = 'none';
     }
 
   };
@@ -1352,13 +1352,6 @@ const ScoreManager = {
   document.getElementById('submit-path')?.addEventListener('click', () => {
     Gameplay.submitCurrentPath();
   });
-  
-  // Quit
-  document.getElementById('quit-button')?.addEventListener('click', () => {
-    GameState.quit = true;
-    UI.endGame();
-  });
-  
 
   // =====================
   // Responsive Layout
