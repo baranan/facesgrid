@@ -792,6 +792,8 @@ const Hamiltonian = {
   // =====================
   const Handlers = {
     handleStart(evt) {
+      if (GameMode.isBotTurn()) return;  // ⛔ prevent player's touch or mouse input while bot is playing
+
       const cell = Utils.getCellFromEvent(evt);
       if (!cell) return;
       const { x, y } = cell;
@@ -817,6 +819,8 @@ const Hamiltonian = {
     },
   
     handleMove(evt) {
+      if (GameMode.isBotTurn()) return;  // ⛔ prevent drag while bot is playing
+
       if (!GameState.isMouseDown) return;
       const cell = Utils.getCellFromEvent(evt);
       if (!cell) return;
@@ -864,6 +868,8 @@ const Hamiltonian = {
     },
   
     handleEnd(evt) {
+      if (GameMode.isBotTurn()) return;  // ⛔ prevent mouseup/touchend submission
+
       evt.preventDefault();
       GameState.isMouseDown = false;
       if (!GameState.manualSubmit) {
@@ -1162,7 +1168,10 @@ const UI = {
         // Then by score difference (high to low)
         return b.diff - a.diff;
       });      
-        
+      
+      // Slice list to 10 entries
+      list = list.slice(0, 10);
+
       // Build table for VS Bot scores
       table.innerHTML = `
         <thead>
