@@ -30,6 +30,7 @@
       <div id="info-wrapper" style="display: none;">
         <span id="moves-left"></span>
         <span id="mean-score"></span>
+        <span id="vsbot-level" style="display: inline-block; visibility: hidden;"></span>
       </div>
     </div> 
 
@@ -47,8 +48,8 @@
           <div class="setting-group">
             <label>Grid Size:</label>
             <div class="button-group" id="grid-size-group">
-              <button class="toggle-btn selected" data-value="4">4</button>
-              <button class="toggle-btn" data-value="5">5</button>
+              <button class="toggle-btn" data-value="4">4</button>
+              <button class="toggle-btn selected" data-value="5">5</button>
               <button class="toggle-btn" data-value="6">6</button>
             </div>
           </div>
@@ -72,6 +73,21 @@
               <button class="toggle-btn" data-value="auto">Automatic</button>
               <button class="toggle-btn selected" data-value="manual">Button</button>
             </div>
+          </div>
+          
+          <!-- Game Mode Selection -->
+          <div class="setting-group">
+            <label>Game Mode:</label>
+            <div class="button-group" id="game-mode-group">
+              <button class="toggle-btn selected" data-value="Rounds">Rounds</button>
+              <button class="toggle-btn" data-value="VS Bot">VS Bot</button>
+            </div>
+          </div>
+
+          <!-- VS Bot Level -->
+          <div class="setting-group" id="vsbot-level-group" style="display: none;">
+            <label>Bot Level:</label>
+            <input id="vsbot-level-input" type="number" min="1" max="99" value="1" />
           </div>
         
           <button id="close-settings-bottom" class="secondary-button">Close Settings</button>
@@ -119,18 +135,26 @@
     <div id="high-scores" class="final-score-box" style="display: none; position: fixed;">
       <button id="close-scores-x" class="close-button">✖</button>
       <h3>🏆 Top Scores</h3>
-      <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-        <label>
-          Grid Size:
-          <select id="score-grid-select"></select>
-        </label>
-        <label>
-          Moves:
-          <select id="score-moves-select">
-            <option value="any">Any</option>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <div>
+          <div style="font-size: 0.8rem;">Mode</div>
+          <select id="score-mode-select">
+            <option value="Rounds">Rounds</option>
+            <option value="VS Bot">VS Bot</option>
           </select>
-        </label>
+        </div>
+        <div>
+          <div style="font-size: 0.8rem;">Grid</div>
+          <select id="score-grid-select"></select> <!-- populated in JS -->
+        </div>
+        <div>
+          <div style="font-size: 0.8rem;">Moves</div>
+          <select id="score-moves-select">
+            <option value="any">Any</option> <!-- rest populated in JS -->
+          </select>
+        </div>
       </div>
+      
       <table id="score-table" style="margin-top: 20px; width: 100%; font-size: 1rem; border-collapse: collapse;"></table>
       <button id="delete-scores" class="secondary-button" style="background: #f44336; color: white; margin-bottom: 10px;">🗑️ Delete Scores</button>
       <button class="bottom-close" id="close-scores">Close</button>

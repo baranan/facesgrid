@@ -450,3 +450,13 @@ canvas {
   border-color: #4CAF50;
 }
 
+.bot-playing {
+  background-color: #fae8f5;
+}
+
+.vsbot-score {
+  font-size: 1.7rem;       /* Smaller than the default h1 */
+  font-weight: normal;     /* Optional: reduce boldness */
+  line-height: 1.2;
+  display: inline-block;
+}

@@ -6,8 +6,97 @@
 /*
   This script manages the entire logic of the Face Grid Game, separating game logic,
   rendering, input handling, and game state using JavaScript const-based namespaces.
-  It improves readability and maintainability compared to the monolithic structure.
 */
+
+// =========================
+// GameMode: Encapsulates all game mode logic (Rounds or VS Bot)
+// =========================
+const GameMode = {
+  current: "Rounds",  // Can be "Rounds" or "VS Bot"
+  level: 1,            // The current difficulty level for VS Bot
+  humanScore: 0,       // Tracks human's score during VS Bot play
+  botScore: 0,         // Tracks bot's score during VS Bot play
+
+  // Helper: Is the current mode VS Bot?
+  isVSBot() {
+    return this.current === "VS Bot";
+  },
+
+  // Helper: Is it currently the bot's turn?
+  // Human plays on moves 0, 2, 4, ...
+  // Bot plays on moves 1, 3, 5, ...
+  isBotTurn() {
+    return this.isVSBot() && GameState.moves % 2 === 1;
+  },
+
+  // Called once after each turn to assign score to human or bot
+  updateScore(turnScore) {
+    if (!this.isVSBot()) return;
+
+    if (this.isBotTurn()) {
+      this.botScore += turnScore;
+    } else {
+      this.humanScore += turnScore;
+    }
+  },
+
+  // Used during the game to return the score display string
+  // For VS Bot, returns both human and bot scores with colors
+  getScoreLabel() {
+    if (this.isVSBot()) {
+      return `
+        <span class="vsbot-score">
+          <span style="color: green;">Human: ${this.humanScore}</span>
+          &nbsp;&nbsp;&nbsp;&nbsp;
+          <span style="color: purple;">Bot: ${this.botScore}</span>
+        </span>
+      `;
+    } else {
+      return `Total Score: ${GameState.totalScore}`;
+    }
+  },  
+
+  // Called at the end of the game to compute who won, and adjust level
+  getEndgameSummary() {
+    if (!this.isVSBot()) return null;
+
+    const human = this.humanScore;
+    const bot = this.botScore;
+    let outcome, levelChange;
+
+    if (human > bot) {
+      outcome = "Human wins";
+      if (this.level < 99) {
+        this.level++;
+        levelChange = `Level ↑ to ${this.level}`;
+      } else {
+        levelChange = "Level maxed";
+      }
+    } else if (bot > human) {
+      outcome = "Bot wins";
+      if (this.level > 1) {
+        this.level--;
+        levelChange = `Level ↓ to ${this.level}`;
+      } else {
+        levelChange = "Level stays";
+      }
+    } else {
+      outcome = "Tie";
+      levelChange = "Level unchanged";
+    }
+
+    return {
+      finalScoreText: `${outcome}: ${human}–${bot}`,
+      levelChangeText: levelChange
+    };
+  },
+
+  // Resets the bot/human scores (called when game starts)
+  resetScores() {
+    this.humanScore = 0;
+    this.botScore = 0;
+  }
+};
 
 // =====================
 // Game State Namespace
@@ -432,9 +521,21 @@ const PathLogic = {
       }
     },
 
+    // =========================
+    // Renderer: Show current total score
+    // =========================
     drawTotalScore() {
-        const header = document.querySelector('h1');
-        if (header) header.textContent = `Total Score: ${GameState.totalScore}`;
+      const header = document.querySelector('h1');
+      if (!header) return;
+
+      const label = GameMode.getScoreLabel();
+
+      // In VS Bot mode, we use innerHTML to show colored spans
+      if (GameMode.isVSBot()) {
+        header.innerHTML = label;
+      } else {
+        header.textContent = label;
+      }
     },
 
     // Draw a face image inside a circular mask
@@ -756,6 +857,18 @@ const Hamiltonian = {
         GameState.quit = false;
         GameState.gameOn = true;
     
+        // Read mode and level from settings
+        GameMode.current = document.querySelector('#game-mode-group .selected')?.dataset.value || "Rounds";
+        GameMode.level = parseInt(document.getElementById('vsbot-level-input')?.value || '1');
+
+        // Reset per-player scores
+        GameMode.resetScores();
+
+        // Ensure an even number of moves in VS Bot mode
+        if (GameMode.isVSBot() && GameState.movesLeft % 2 !== 0) {
+          GameState.movesLeft++;
+        }
+
         // Hide panels, show canvas
         document.getElementById('controls').style.display = 'none';
         document.getElementById('instructions').style.display = 'none';
@@ -798,6 +911,8 @@ const Hamiltonian = {
         }
 
         GameState.totalScore += GameState.turnScore; 
+        // Track score per player if in VS Bot mode
+        GameMode.updateScore(GameState.turnScore);
 
         let affected = [...GameState.path];
         if (Utils.getLoopClosed()) {
@@ -827,6 +942,11 @@ const Hamiltonian = {
             });
           }
           PathLogic.clear(); // Always hide path immediately after animation
+          
+          if (GameMode.isBotTurn() && GameState.movesLeft > 0) {
+            // ✅ Trigger bot if it's their turn and there are moves left
+            setTimeout(() => Bot.play(GameMode.level), 500);
+          }
         });              
           
         GameState.moves++;
@@ -846,141 +966,226 @@ const Hamiltonian = {
 // =====================
 const UI = {
 
-    updateGameInfoVisibility() {
-        const submitBtn = document.getElementById('submit-path');
-        const infoWrapper = document.getElementById('info-wrapper');
-        const gameInfoRow = document.getElementById('game-info-row');
-        const quitButton = document.getElementById('quit-button');
-        const gameRow = document.getElementById('game-info-row');
-        const canvas = GameState.canvas;
-        const container = document.getElementById('game-container');
-        const header = document.querySelector('h1');      
+  updateGameInfoVisibility() {
+      const submitBtn = document.getElementById('submit-path');
+      const infoWrapper = document.getElementById('info-wrapper');
+      const gameInfoRow = document.getElementById('game-info-row');
+      const quitButton = document.getElementById('quit-button');
+      const gameRow = document.getElementById('game-info-row');
+      const canvas = GameState.canvas;
+      const container = document.getElementById('game-container');
+      const header = document.querySelector('h1');      
 
-        if (!GameState.gameOn) {
-            // Game is not active: hide all buttons and info and game.
-            if (header) header.textContent = '';
-            submitBtn.style.display = 'none';
-            infoWrapper.style.display = 'none';
-            gameInfoRow.style.display = 'none';
-            quitButton.style.display = 'none';
-            if (canvas) canvas.style.display = 'none';
-            if (container) container.style.display = 'none';
-            if (gameRow) gameRow.style.display = 'none';
-            return;
-        }
-        else 
-        {
-            if (canvas) canvas.style.display = 'block';
-            if (container) container.style.display = 'block';
-            if (gameRow) gameRow.style.display = 'flex';
+      if (!GameState.gameOn) {
+          // Game is not active: hide all buttons and info and game.
+          if (header) header.textContent = '';
+          submitBtn.style.display = 'none';
+          infoWrapper.style.display = 'none';
+          gameInfoRow.style.display = 'none';
+          quitButton.style.display = 'none';
+          if (canvas) canvas.style.display = 'none';
+          if (container) container.style.display = 'none';
+          if (gameRow) gameRow.style.display = 'none';
+          return;
+      }
+      else 
+      {
+          if (canvas) canvas.style.display = 'block';
+          if (container) container.style.display = 'block';
+          if (gameRow) gameRow.style.display = 'flex';
 
-            if (!GameState.manualSubmit) {
-                // Automatic mode: show info only
-                submitBtn.style.display = 'none';
-                infoWrapper.style.display = 'inline-block';
-                gameInfoRow.style.display = 'flex';
-                quitButton.style.display = 'inline-block'; // Show quit button in automatic mode
-                return;
-            }
-            else {
-                quitButton.style.display = 'inline-block'; // Show quit button in automatic mode
-                // Manual mode
-                if (GameState.path.length > 1) {
-                    submitBtn.style.display = 'inline-block';
-                    infoWrapper.style.display = 'none';
-                    gameInfoRow.style.display = 'flex';
-                } else {
-                    submitBtn.style.display = 'none';
-                    infoWrapper.style.display = 'inline-block';
-                    gameInfoRow.style.display = 'flex';
-                }
-            }
+          if (!GameState.manualSubmit) {
+              // Automatic mode: show info only
+              submitBtn.style.display = 'none';
+              infoWrapper.style.display = 'inline-block';
+              gameInfoRow.style.display = 'flex';
+              quitButton.style.display = 'inline-block'; // Show quit button in automatic mode
+              return;
+          }
+          else {
+              quitButton.style.display = 'inline-block'; // Show quit button in automatic mode
+              // Manual mode
+              if (GameState.path.length > 1) {
+                  submitBtn.style.display = 'inline-block';
+                  infoWrapper.style.display = 'none';
+                  gameInfoRow.style.display = 'flex';
+              } else {
+                  submitBtn.style.display = 'none';
+                  infoWrapper.style.display = 'inline-block';
+                  gameInfoRow.style.display = 'flex';
+              }
+          }
 
-            if (GameState.path.length < 2) {
-                Renderer.drawTotalScore();
-            }    
-        }
-        
-    },
-
-    updateInfo() {
-        const movesEl = document.getElementById('moves-left');
-        const meanEl = document.getElementById('mean-score');
-
-        if (movesEl) {
-            movesEl.textContent = GameState.movesLeft > 0
-            ? `Moves left: ${GameState.movesLeft}`
-            : '';
-        }
-
-        if (meanEl) {
-            const mean = GameState.moves > 0
-            ? (GameState.totalScore / GameState.moves).toFixed(2)
-            : '0.00';
-            meanEl.textContent = `Mean: ${mean}`;
-        }
-    },
+          if (GameState.path.length < 2) {
+              Renderer.drawTotalScore();
+          }    
+      }
       
-    // Dynamically align quit button with canvas and header
-    positionQuitButton() {
-        const canvas = GameState.canvas;
-        const h1 = document.querySelector('h1');
-        const quitButton = document.getElementById('quit-button');
+  },
 
-        if (!canvas || !h1 || !quitButton) return;
+  updateInfo() {
+    // Get reference to the element that displays how many moves are left
+    const movesEl = document.getElementById('moves-left');
+    
+    // Get reference to the element that displays the mean score
+    const meanEl = document.getElementById('mean-score');
+    
+    // Get reference to the newly added element that will display the bot level (in VS Bot mode only)
+    const levelEl = document.getElementById('vsbot-level');
+  
+    // --- Update moves left display ---
+    if (movesEl) {
+      // If there are moves left, show how many. If not, clear the text.
+      movesEl.textContent = GameState.movesLeft > 0
+        ? `Moves left: ${GameState.movesLeft}`
+        : '';
+    }
+  
+    // --- Update mean score display ---
+    if (meanEl) {
+      // Compute mean score if at least one move was made
+      const mean = GameState.moves > 0
+        ? (GameState.totalScore / GameState.moves).toFixed(2)
+        : '0.00';
+  
+      // Display the computed mean
+      meanEl.textContent = `Mean: ${mean}`;
+    }
+  
+    // --- Update VS Bot Level display ---
+    if (levelEl) {
+      if (GameMode.isVSBot()) {
+        // If VS Bot mode is active, show the level text and make it visible
+        levelEl.textContent = `Level: ${GameMode.level}`;
+        levelEl.style.visibility = 'visible';  // Makes it visible while keeping layout flow
+      } else {
+        // In non-VS-Bot mode, clear the content and hide it visually (but not layout-wise)
+        levelEl.textContent = '';
+        levelEl.style.visibility = 'hidden';  // Keeps the span's space but hides the text
+      }
+    }
+  },  
+    
+  // Dynamically align quit button with canvas and header
+  positionQuitButton() {
+      const canvas = GameState.canvas;
+      const h1 = document.querySelector('h1');
+      const quitButton = document.getElementById('quit-button');
 
-        const canvasRect = canvas.getBoundingClientRect();
-        const h1Rect = h1.getBoundingClientRect();
-        const parentRect = quitButton.offsetParent?.getBoundingClientRect() || { left: 0, top: 0 };
+      if (!canvas || !h1 || !quitButton) return;
 
-        const right = canvasRect.right - parentRect.left;
-        const top = h1Rect.top - parentRect.top;
+      const canvasRect = canvas.getBoundingClientRect();
+      const h1Rect = h1.getBoundingClientRect();
+      const parentRect = quitButton.offsetParent?.getBoundingClientRect() || { left: 0, top: 0 };
 
-        quitButton.style.position = 'absolute';
-        quitButton.style.left = `${right - quitButton.offsetWidth}px`;
-        quitButton.style.top = `${top}px`;
-    },
+      const right = canvasRect.right - parentRect.left;
+      const top = h1Rect.top - parentRect.top;
 
-    showTopScores() {
-        const grid = document.getElementById('score-grid-select').value;
-        const moves = document.getElementById('score-moves-select').value;
-        const scores = ScoreManager.load(grid, moves);
-        const table = document.getElementById('score-table');
-        const showMoves = moves === 'any';
-      
-        const headers = ['Total', 'Mean', ...(showMoves ? ['Moves'] : []), 'Date'];
-        table.innerHTML = `
-          <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-          <tbody>
-            ${scores.map(s => `
-              <tr>
-                <td>${s.score}</td>
-                <td>${s.mean.toFixed(2)}</td>
-                ${showMoves ? `<td>${s.movesLimit}</td>` : ''}
-                <td>${s.date || ''}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        `;
-      
-        if (scores.length === 0) {
-          table.innerHTML = '<tr><td colspan="4" style="text-align:center">No scores yet.</td></tr>';
-        }
-    },
+      quitButton.style.position = 'absolute';
+      quitButton.style.left = `${right - quitButton.offsetWidth}px`;
+      quitButton.style.top = `${top}px`;
+  },
 
-    updateMovesDropdown() {
-        const grid = document.getElementById('score-grid-select').value;
-        const movesSelect = document.getElementById('score-moves-select');
-      
-        const moveLimits = ScoreManager.getMoveLimits(grid);
-        movesSelect.innerHTML = '<option value="any">Any</option>';
-        moveLimits.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m;
-          opt.textContent = m;
-          movesSelect.appendChild(opt);
+  showTopScores() {
+    const mode = document.getElementById('score-mode-select').value;
+    const grid = document.getElementById('score-grid-select').value;
+    const moves = document.getElementById('score-moves-select').value;
+    const table = document.getElementById('score-table');
+  
+    // === VS Bot Mode Display ===
+    if (mode === 'VS Bot') {
+      let list = [];
+
+      if (moves === "any") {
+        // Collect all VS Bot scores for this grid size, regardless of moves
+        const keys = Object.keys(localStorage).filter(k => k.startsWith(`vsbot_scores_${grid}x`));
+        keys.forEach(k => {
+          const entries = JSON.parse(localStorage.getItem(k) || '[]');
+          list.push(...entries);
         });
-     },
+      } else {
+        // Load only exact-match scores
+        const key = `vsbot_scores_${grid}x${moves}`;
+        list = JSON.parse(localStorage.getItem(key)) || [];
+      }
+
+      list.sort((a, b) => {
+        // Sort by Level first (high to low)
+        if (b.level !== a.level) return b.level - a.level;
+      
+        // Then by score difference (high to low)
+        return b.diff - a.diff;
+      });      
+        
+      // Build table for VS Bot scores
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Human</th>
+            <th>Bot</th>
+            <th>Diff</th>
+            <th>Level</th>
+            <th>Moves</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(entry => `
+            <tr>
+              <td>${entry.human}</td>
+              <td>${entry.bot}</td>
+              <td>${entry.diff > 0 ? '+' : ''}${entry.diff}</td>
+              <td>${entry.level}</td>
+              <td>${entry.movesLimit}</td>
+              <td>${entry.date || ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      `;
+  
+      if (list.length === 0) {
+        table.innerHTML = '<tr><td colspan="6" style="text-align:center">No VS Bot scores yet.</td></tr>';
+      }
+  
+    } else {
+      // === Rounds Mode Display (original behavior) ===
+  
+      const scores = ScoreManager.load(grid, moves);
+      const showMoves = moves === 'any';
+  
+      const headers = ['Total', 'Mean', ...(showMoves ? ['Moves'] : []), 'Date'];
+      table.innerHTML = `
+        <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${scores.map(s => `
+            <tr>
+              <td>${s.score}</td>
+              <td>${s.mean.toFixed(2)}</td>
+              ${showMoves ? `<td>${s.movesLimit}</td>` : ''}
+              <td>${s.date || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      `;
+  
+      if (scores.length === 0) {
+        table.innerHTML = '<tr><td colspan="4" style="text-align:center">No scores yet.</td></tr>';
+      }
+    }
+  },
+
+  updateMovesDropdown() {
+      const grid = document.getElementById('score-grid-select').value;
+      const movesSelect = document.getElementById('score-moves-select');
+    
+      const moveLimits = ScoreManager.getMoveLimits(grid);
+      movesSelect.innerHTML = '<option value="any">Any</option>';
+      moveLimits.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        movesSelect.appendChild(opt);
+      });
+    },
       
       // =====================
   // Score Dropdown UI
@@ -1049,18 +1254,44 @@ const UI = {
       document.getElementById('controls').style.removeProperty('display');
   
       if (!GameState.quit) {
-        // Show final score screen
+        // Show final score screen with VS Bot support
         document.getElementById('game-over').style.display = 'block';
-        document.getElementById('final-score').textContent = GameState.totalScore;
-        const mean = GameState.moves > 0 ? (GameState.totalScore / GameState.moves).toFixed(2) : '0';
-        document.getElementById('final-mean-score').textContent = mean;
+        const summary = GameMode.getEndgameSummary();
 
-        ScoreManager.save(
+        if (summary) {
+          // === VS Bot mode: show custom summary and save VS Bot result
+          document.getElementById('final-score').innerHTML = summary.finalScoreText;
+          document.getElementById('final-mean-score').textContent = summary.levelChangeText;
+
+          // Also update the Level input in settings panel
+          const levelInput = document.getElementById('vsbot-level-input');
+          if (levelInput) {
+            levelInput.value = GameMode.level;
+            SettingsManager.save();  // ✅ now it will persist the updated level
+          }
+        
+          ScoreManager.save(
+            0, // totalScore not used in VS Bot mode
+            GameState.gridSize,
+            GameState.movesLimit,
+            0  // mean not used in VS Bot mode
+          );
+        
+        } else {
+          // === Rounds mode: show normal total + mean
+          document.getElementById('final-score').textContent = GameState.totalScore;
+          const mean = GameState.moves > 0
+            ? (GameState.totalScore / GameState.moves).toFixed(2)
+            : '0';
+          document.getElementById('final-mean-score').textContent = mean;
+        
+          ScoreManager.save(
             GameState.totalScore,
             GameState.gridSize,
-            GameState.movesLimit, 
+            GameState.movesLimit,
             parseFloat(mean)
-        );
+          );
+        }        
       }
 
       UI.updateGameInfoVisibility();
@@ -1152,27 +1383,75 @@ const Animation = {
  // =====================
 // Score Manager
 // =====================
-const ScoreManager = {
+  const ScoreManager = {
     save(score, gridSize, movesLimit, mean) {
-      const keyTotal = `scores_total_${gridSize}x${movesLimit}`;
-      const keyMean = `scores_mean_${gridSize}`;
-      const now = new Date().toISOString().split('T')[0];
-  
-      const newEntry = { score, gridSize, movesLimit, mean, date: now };
-  
-      // Total scores
-      let totalScores = JSON.parse(localStorage.getItem(keyTotal)) || [];
-      totalScores.push(newEntry);
-      totalScores.sort((a, b) => b.score - a.score);
-      localStorage.setItem(keyTotal, JSON.stringify(totalScores.slice(0, 10)));
-  
-      // Mean scores
-      let meanScores = JSON.parse(localStorage.getItem(keyMean)) || [];
-      meanScores.push(newEntry);
-      meanScores.sort((a, b) => b.mean - a.mean);
-      localStorage.setItem(keyMean, JSON.stringify(meanScores.slice(0, 10)));
+      const now = new Date().toISOString().split('T')[0];  // Format: YYYY-MM-DD
+
+      if (GameMode.isVSBot()) {
+        // === Save VS Bot mode score ===
+
+        // Compute score difference (human - bot), win status
+        const diff = GameMode.humanScore - GameMode.botScore;
+        const won = GameMode.humanScore > GameMode.botScore;
+
+        // Key: separate storage for VS Bot mode
+        const modeKey = `vsbot_scores_${gridSize}x${movesLimit}`;
+
+        // Define what we save in localStorage
+        const newEntry = {
+          human: GameMode.humanScore,
+          bot: GameMode.botScore,
+          diff,
+          level: GameMode.level,
+          movesLimit,
+          date: now,
+          won
+        };
+
+        // Load existing scores from localStorage (or start empty)
+        let list = JSON.parse(localStorage.getItem(modeKey)) || [];
+
+        // Add new entry
+        list.push(newEntry);
+
+        // Sort scores:
+        // 1. Wins come first
+        // 2. Higher level is better
+        // 3. Higher score difference is better
+        // 4. Higher human score is better (tiebreaker)
+        list.sort((a, b) => {
+          // Sort by Level first (high to low)
+          if (b.level !== a.level) return b.level - a.level;
+
+          // Then by score difference (high to low)
+          return b.diff - a.diff;
+        });
+
+        // Save only top 10 entries
+        localStorage.setItem(modeKey, JSON.stringify(list.slice(0, 10)));
+
+      } else {
+        // === Save Rounds mode score (original behavior) ===
+
+        const keyTotal = `scores_total_${gridSize}x${movesLimit}`;
+        const keyMean = `scores_mean_${gridSize}`;
+
+        const newEntry = { score, gridSize, movesLimit, mean, date: now };
+
+        // Save top scores by total
+        let totalScores = JSON.parse(localStorage.getItem(keyTotal)) || [];
+        totalScores.push(newEntry);
+        totalScores.sort((a, b) => b.score - a.score);
+        localStorage.setItem(keyTotal, JSON.stringify(totalScores.slice(0, 10)));
+
+        // Save top scores by mean
+        let meanScores = JSON.parse(localStorage.getItem(keyMean)) || [];
+        meanScores.push(newEntry);
+        meanScores.sort((a, b) => b.mean - a.mean);
+        localStorage.setItem(keyMean, JSON.stringify(meanScores.slice(0, 10)));
+      }
     },
-  
+
     getGridSizes() {
       const keys = Object.keys(localStorage);
       const sizes = new Set();
@@ -1182,7 +1461,7 @@ const ScoreManager = {
       });
       return Array.from(sizes).sort((a, b) => a - b);
     },
-  
+
     getMoveLimits(gridSize) {
       const keys = Object.keys(localStorage);
       const moves = new Set();
@@ -1192,7 +1471,35 @@ const ScoreManager = {
       });
       return Array.from(moves).sort((a, b) => a - b);
     },
-  
+
+    // Save most recent dropdown state to localStorage
+    saveScoreDropdownState() {
+      const mode = document.getElementById('score-mode-select')?.value;
+      const grid = document.getElementById('score-grid-select')?.value;
+      const moves = document.getElementById('score-moves-select')?.value;
+
+      const state = { mode, grid, moves };
+      localStorage.setItem('scoreDropdownState', JSON.stringify(state));
+    },
+
+    // Read most recent dropdown state from localStorage
+    loadScoreDropdownState() {
+      try {
+        const state = JSON.parse(localStorage.getItem('scoreDropdownState'));
+        if (!state) return;
+
+        const modeEl = document.getElementById('score-mode-select');
+        const gridEl = document.getElementById('score-grid-select');
+        const movesEl = document.getElementById('score-moves-select');
+
+        if (modeEl && state.mode) modeEl.value = state.mode;
+        if (gridEl && state.grid) gridEl.value = state.grid;
+        if (movesEl && state.moves) movesEl.value = state.moves;
+      } catch (e) {
+        console.warn("Failed to load dropdown state:", e);
+      }
+    },
+
     load(gridSize, moves) {
       if (moves === 'any') {
         return JSON.parse(localStorage.getItem(`scores_mean_${gridSize}`)) || [];
@@ -1216,7 +1523,9 @@ const ScoreManager = {
           return Math.min(99, Math.max(1, raw)); // Clamp to [1, 99]
         })(),
         scoreDisplayMode: SettingsManager.getSelectedValue('score-overlay-toggle-group'),
-        submitMode: SettingsManager.getSelectedValue('submit-mode-group')
+        submitMode: SettingsManager.getSelectedValue('submit-mode-group'),
+        gameMode: SettingsManager.getSelectedValue('game-mode-group'),
+        botLevel: parseInt(document.getElementById('vsbot-level-input')?.value || '1'),
       };
       localStorage.setItem('savedSettings', JSON.stringify(settings));
     },
@@ -1225,14 +1534,30 @@ const ScoreManager = {
     load() {
       const saved = JSON.parse(localStorage.getItem('savedSettings'));
       if (!saved) return;
-  
+    
       SettingsManager.selectValue('face-set-group', saved.faceSet || 'women');
       SettingsManager.selectValue('grid-size-group', String(saved.gridSize || 5));
       SettingsManager.selectValue('score-overlay-toggle-group', saved.scoreDisplayMode || 'header');
       SettingsManager.selectValue('submit-mode-group', saved.submitMode || 'manual');
-      document.getElementById('moves-limit').value = saved.movesLeft || 30;
+      SettingsManager.selectValue('game-mode-group', saved.gameMode || 'Rounds');
+    
+      const levelInput = document.getElementById('vsbot-level-input');
+      if (levelInput) levelInput.value = saved.botLevel || 1;
+    
+      const movesInput = document.getElementById('moves-limit');
+      if (movesInput) movesInput.value = saved.movesLeft || 30;
+    
+      // ✅ Trigger toggle visibility for VS Bot level input
+      const selectedMode = saved.gameMode || 'Rounds';
+      const levelGroup = document.getElementById('vsbot-level-group');
+      if (levelGroup) {
+        levelGroup.style.display = (selectedMode === 'VS Bot') ? 'block' : 'none';
+      }
+    
+      // ✅ Call save once to re-store cleaned values
+      SettingsManager.save();
     },
-  
+      
     // Bind click listeners to a toggle group so selection updates correctly
     bindToggleGroup(groupId) {
       const group = document.getElementById(groupId);
@@ -1261,12 +1586,13 @@ const ScoreManager = {
       group.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.value === value);
       });
+      SettingsManager.save(); // ✅ Save selection immediately
     },
   
     // Initialize all settings controls
     init() {
-      ['face-set-group', 'grid-size-group', 'score-overlay-toggle-group', 'submit-mode-group']
-        .forEach(SettingsManager.bindToggleGroup);
+      ['face-set-group', 'grid-size-group', 'score-overlay-toggle-group', 'submit-mode-group', 'game-mode-group']
+      .forEach(SettingsManager.bindToggleGroup);    
 
         const movesInput = document.getElementById('moves-limit');
         if (movesInput) {
@@ -1284,6 +1610,272 @@ const ScoreManager = {
     }
   };
   
+// =====================
+// Bot Namespace
+// =====================
+const Bot = {
+  async play(level = 1) {
+    // Add background highlight
+    document.body.classList.add('bot-playing');
+
+    const bestPath = await Bot.findBestPath(level);
+
+    if (!bestPath || bestPath.length < 2) {
+      console.warn("Bot: no good path found.");
+      return;
+    }
+
+    PathLogic.clear();
+    PathLogic.startPath(bestPath[0].x, bestPath[0].y);
+    for (let i = 1; i < bestPath.length; i++) {
+      PathLogic.addToPath(bestPath[i].x, bestPath[i].y, bestPath[i].direction);
+    }
+    PathLogic.recomputeDeltaScores();
+    Renderer.drawBoard();
+
+    await new Promise(r => setTimeout(r, 1600));
+    Gameplay.submitCurrentPath();
+
+    // Remove background highlight after bot finishes
+    document.body.classList.remove('bot-playing');
+  },
+
+  async findBestPath(level = 1, showVisualization = true) {
+    const grid = GameState.board;
+    const size = GameState.gridSize;
+  
+    // Difficulty tuning parameters
+    const maxDepth = 4 + level * 2;   // Max path length explored
+    const beamSize = 6 + level * 2;   // Max candidate paths kept at each step
+  
+    let bestPath = null;             // Will store the highest scoring path found
+    let bestScore = -Infinity;       // Will store the best score seen so far
+  
+    // Gather all legal starting positions (non-null cells)
+    const startPoints = [];
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (grid[y][x]) startPoints.push({ x, y });
+      }
+    }
+  
+    // Try to find best path starting from each legal cell
+    for (const start of startPoints) {
+      const startKey = `${start.x},${start.y}`;
+      const group = grid[start.y][start.x].group;
+  
+      // Initialize the beam with a single-cell path
+      const queue = [{
+        path: [{ x: start.x, y: start.y }],        // Starting path
+        visited: new Set([startKey]),              // Track visited cells
+        visitedGroups: new Set([group]),           // Track groups encountered
+        group,                                     // Current group for straight-move checks
+        score: 0,
+        closedLoop: false
+      }];
+  
+      // Begin beam expansion up to max depth
+      for (let depth = 0; depth < maxDepth; depth++) {
+        const nextQueue = [];
+  
+        for (const state of queue) {
+          const { path, visited, visitedGroups, group } = state;
+          const last = path[path.length - 1];
+  
+          for (const { dx, dy } of Bot._directions) {
+            const nx = last.x + dx;
+            const ny = last.y + dy;
+  
+            // Skip out-of-bounds moves
+            if (!Utils.isInGrid(nx, ny)) continue;
+  
+            const key = `${nx},${ny}`;
+            const isStart = nx === path[0].x && ny === path[0].y;
+            const cellWasVisited = visited.has(key);
+  
+            // Prevent revisiting any cell except legal loop closure
+            if (cellWasVisited && !isStart) continue;
+  
+            const cell = grid[ny][nx];
+            if (!cell) continue;
+  
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+  
+            // Determine if this is a straight or diagonal move
+            const isStraight = (dx === 0 || dy === 0) && (absDx + absDy === 1);
+            const isDiagonal = (absDx === 1 && absDy === 1);
+  
+            // Enforce movement legality:
+            // - straight moves require same group
+            // - diagonal moves require different group
+            let moveAllowed = false;
+            if (isStraight && cell.group === group) moveAllowed = true;
+            if (isDiagonal && cell.group !== group) moveAllowed = true;
+            if (!moveAllowed) continue;
+  
+            // Determine if we are legally returning to the start (loop closure)
+            const returningToStart = isStart && moveAllowed;
+  
+            // Define direction label (for path visualization)
+            const direction =
+              isStraight ? (dx === 0 ? 'vertical' : 'horizontal') :
+              isDiagonal ? 'diagonal' :
+              null;
+  
+            // Build the extended path
+            const newPath = [...path, { x: nx, y: ny, direction }];
+  
+            // Track newly visited cells unless we just closed the loop
+            const newVisited = new Set(visited);
+            if (!returningToStart) newVisited.add(key);
+  
+            // Update groups visited
+            const newGroups = new Set(visitedGroups);
+            newGroups.add(cell.group);
+  
+            // Score the new path
+            const score = Bot.scorePath(newPath, newGroups, returningToStart);
+  
+            // If this is the best path so far, update and show it
+            if (score > bestScore) {
+              bestScore = score;
+              bestPath = newPath;
+  
+              if (showVisualization) {
+                // Show path on screen
+                PathLogic.clear();
+                PathLogic.startPath(newPath[0].x, newPath[0].y);
+                for (let i = 1; i < newPath.length; i++) {
+                  PathLogic.addToPath(newPath[i].x, newPath[i].y, newPath[i].direction);
+                }
+                PathLogic.recomputeDeltaScores();
+                Renderer.drawBoard();
+                // Brief pause to visualize
+                await new Promise(r => setTimeout(r, 30));
+              }
+              
+            }
+  
+            // Don't expand this path further if it just closed a loop
+            if (returningToStart) continue;
+  
+            // Add the extended path to next round's candidates
+            nextQueue.push({
+              path: newPath,
+              visited: newVisited,
+              visitedGroups: newGroups,
+              group: cell.group,
+              score,
+              closedLoop: returningToStart
+            });
+          }
+        }
+  
+        // Beam pruning: keep only top scoring partial paths
+        nextQueue.sort((a, b) => b.score - a.score);
+        queue.splice(0, queue.length, ...nextQueue.slice(0, beamSize));
+      }
+    }
+  
+    return bestPath;
+  },  
+
+  benchmark(maxLevel = 13, step = 1) {
+    (async () => {
+      console.log("Bot Benchmark Started\n--------------------");
+      for (let level = 1; level <= maxLevel; level += step) {
+        const path = await Bot.findBestPath(level, false); // disable rendering
+  
+        if (!path || path.length < 2) {
+          console.log(`Level ${level} → No valid path found`);
+          continue;
+        }
+  
+        // Determine if path is a loop (last == first)
+        const isLoop =
+          path.length > 2 &&
+          path[0].x === path[path.length - 1].x &&
+          path[0].y === path[path.length - 1].y;
+  
+        // Rebuild visitedGroups set for scoring
+        const visitedGroups = new Set();
+        for (const { x, y } of path) {
+          const cell = GameState.board[y][x];
+          if (cell) visitedGroups.add(cell.group);
+        }
+  
+        const score = Bot.scorePath(path, visitedGroups, isLoop);
+  
+        console.log(
+          `Level ${level} → Length: ${path.length}, Score: ${score}, Loop: ${isLoop ? "Yes" : "No"}`
+        );
+      }
+      console.log("Benchmark complete.");
+    })();
+  },
+  
+
+  _directions: [
+    { dx: 0, dy: -1, dir: 'vertical' },
+    { dx: 0, dy: 1, dir: 'vertical' },
+    { dx: -1, dy: 0, dir: 'horizontal' },
+    { dx: 1, dy: 0, dir: 'horizontal' },
+    { dx: -1, dy: -1, dir: 'diagonal' },
+    { dx: 1, dy: -1, dir: 'diagonal' },
+    { dx: -1, dy: 1, dir: 'diagonal' },
+    { dx: 1, dy: 1, dir: 'diagonal' }
+  ],
+
+  scorePath(path, visitedGroups, closedLoop) {
+    let total = 0;
+    let segment = 0;
+    let step = 0;
+    let expectNew = true;
+
+    for (let i = 1; i < path.length; i++) {
+      const curr = path[i];
+      const prev = path[i - 1];
+      const dx = curr.x - prev.x;
+      const dy = curr.y - prev.y;
+
+      const isStraight = (dx === 0 || dy === 0) && (Math.abs(dx) + Math.abs(dy) === 1);
+      const isDiagonal = Math.abs(dx) === 1 && Math.abs(dy) === 1;
+
+      if (isStraight) {
+        if (expectNew) {
+          segment++;
+          step = 1;
+          expectNew = false;
+        } else {
+          step++;
+        }
+        total += segment * step;
+      } else if (isDiagonal) {
+        total -= 1;
+        expectNew = true;
+        step = 0;
+      }
+    }
+
+    if (closedLoop) {
+      for (let y = 0; y < GameState.gridSize; y++) {
+        for (let x = 0; x < GameState.gridSize; x++) {
+          const cell = GameState.board[y][x];
+          if (cell && visitedGroups.has(cell.group)) {
+            total += 1;
+          }
+        }
+      }
+    }
+
+    return total;
+  }
+};
+
+
+
+
   // =====================
   // Delete and Quit Confirm
   // =====================
@@ -1346,12 +1938,15 @@ const ScoreManager = {
   
   // SCORES button → open top score table
   document.querySelector('.scores-btn')?.addEventListener('click', () => {
+    UI.populateScoreDropdowns();            // First populate all dropdowns
+    ScoreManager.loadScoreDropdownState();  // Then apply the saved values
+    UI.showTopScores();                     // Then display the scores    
+    
     GameState.lastSelectedGrid = document.getElementById('score-grid-select').value;
     GameState.lastSelectedMoves = document.getElementById('score-moves-select').value;
+    
     UI.hideAllPanels();
     document.getElementById('main-menu').style.display = 'none';
-    UI.populateScoreDropdowns();
-    UI.showTopScores();
     document.getElementById('high-scores').style.display = 'block';
   });
   
@@ -1371,7 +1966,7 @@ const ScoreManager = {
     document.getElementById('main-menu').style.display = 'flex';
   });
   
-  // Close buttons for scores panel
+  // Scores panel
   document.getElementById('close-scores')?.addEventListener('click', () => {
     document.getElementById('high-scores').style.display = 'none';
     document.getElementById('main-menu').style.display = 'flex';
@@ -1382,16 +1977,38 @@ const ScoreManager = {
     document.getElementById('main-menu').style.display = 'flex';
   });
 
+  document.getElementById('score-mode-select')?.addEventListener('change', () => {
+    ScoreManager.saveScoreDropdownState();
+    UI.updateMovesDropdown();
+    UI.showTopScores();
+  });
+  
   document.getElementById('score-grid-select')?.addEventListener('change', () => {
     GameState.lastSelectedGrid = document.getElementById('score-grid-select').value;
+    ScoreManager.saveScoreDropdownState();
     UI.updateMovesDropdown();
     UI.showTopScores();
   });
   
   document.getElementById('score-moves-select')?.addEventListener('change', () => {
     GameState.lastSelectedMoves = document.getElementById('score-moves-select').value;
+    ScoreManager.saveScoreDropdownState();
     UI.showTopScores();
-  });
+  });  
+
+  // Settings panel
+  document.querySelectorAll('#game-mode-group .toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.value;
+      const levelGroup = document.getElementById('vsbot-level-group');
+      if (mode === 'VS Bot') {
+        levelGroup.style.display = 'block';
+      } else {
+        levelGroup.style.display = 'none';
+      }
+    });
+  });  
+  
   
   // =====================
   // Event Bindings
