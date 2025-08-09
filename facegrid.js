@@ -1279,11 +1279,11 @@ const UI = {
         
         } else {
           // === Rounds mode: show normal total + mean
-          document.getElementById('final-score').textContent = GameState.totalScore;
+          document.getElementById('final-score').textContent = 'Final score: ' + GameState.totalScore;
           const mean = GameState.moves > 0
             ? (GameState.totalScore / GameState.moves).toFixed(2)
             : '0';
-          document.getElementById('final-mean-score').textContent = mean;
+          document.getElementById('final-mean-score').textContent = 'Mean score: ' + mean;
         
           ScoreManager.save(
             GameState.totalScore,
