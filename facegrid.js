@@ -14,6 +14,7 @@
 const GameMode = {
   current: "Rounds",  // Can be "Rounds" or "VS Bot"
   level: 1,            // The current difficulty level for VS Bot
+  nextLevel: 1,        // The next level to transition to after a game ends
   humanScore: 0,       // Tracks human's score during VS Bot play
   botScore: 0,         // Tracks bot's score during VS Bot play
 
@@ -56,39 +57,83 @@ const GameMode = {
     }
   },  
 
-  // Called at the end of the game to compute who won, and adjust level
+  // Called at the end of the game to provide text summary of the game
   getEndgameSummary() {
-    if (!this.isVSBot()) return null;
+    let finalScoreText = '';
+    let theOtherText = '';
+    let saveToScoreManager = {};
+    let saveToSettingsManager = {
+      mode: null,
+      level: null,
+      faceSet: null,
+      gridSize: null,
+      movesLimit: null
+    };
 
-    const human = this.humanScore;
-    const bot = this.botScore;
-    let outcome, levelChange;
+    if (this.isVSBot()) 
+    {
+        const human = this.humanScore;
+        const bot = this.botScore;
+        let outcome = '';
 
-    if (human > bot) {
-      outcome = "Human wins";
-      if (this.level < 99) {
-        this.level++;
-        levelChange = `Level ↑ to ${this.level}`;
-      } else {
-        levelChange = "Level maxed";
-      }
-    } else if (bot > human) {
-      outcome = "Bot wins";
-      if (this.level > 1) {
-        this.level--;
-        levelChange = `Level ↓ to ${this.level}`;
-      } else {
-        levelChange = "Level stays";
-      }
-    } else {
-      outcome = "Tie";
-      levelChange = "Level unchanged";
+        if (human > bot) {
+          if (this.level < 99) {
+            outcome = 'Human wins';
+            this.nextLevel = this.level+1;
+            theOtherText = `Level ↑ to ${this.nextLevel}`;
+          } else {
+            theOtherText = "Level 99 (max)";
+          }
+        } else if (bot > human) {
+          outcome = 'Bot wins';
+          if (this.level > 1) {
+            this.nextLevel = this.level-1;
+
+            theOtherText = `Level ↓ to ${this.nextLevel}`;
+          } else {
+            theOtherText = "Level stays";
+          }
+        } else {
+          outcome = 'Tie';
+          theOtherText = "Level unchanged";
+        }
+        
+        finalScoreText = `${outcome}: ${human}–${bot}`;
+
+        saveToScoreManager = {
+          total : 0,  // totalScore not used in VS Bot mode
+          gridSize : GameState.gridSize,
+          movesLimit : GameState.movesLimit,
+          mean : 0, // mean not used in VS Bot mode
+          level : this.level
+        };
+
+        // We need to update the level in the settings.
+        saveToSettingsManager.level = this.nextLevel;
+     
+    } else { // === Rounds mode: show normal total + mean
+      finalScoreText = 'Final score: ' + GameState.totalScore;
+      
+      const mean = GameState.moves > 0
+        ? (GameState.totalScore / GameState.moves).toFixed(2)
+        : '0';
+      theOtherText = 'Mean score: ' + mean;
+    
+      saveToScoreManager = {
+        total : GameState.totalScore,
+        gridSize : GameState.gridSize,
+        movesLimit : GameState.movesLimit,
+        mean : parseFloat(mean),
+        level : 0 // not used in Rounds mode
+      };
     }
 
-    return {
-      finalScoreText: `${outcome}: ${human}–${bot}`,
-      levelChangeText: levelChange
-    };
+    return ({
+      finalScoreText: finalScoreText,
+      theOtherText: theOtherText,
+      saveToScoreManager: saveToScoreManager,
+      saveToSettingsManager: saveToSettingsManager
+    });
   },
 
   // Resets the bot/human scores (called when game starts)
@@ -860,6 +905,7 @@ const Hamiltonian = {
         // Read mode and level from settings
         GameMode.current = document.querySelector('#game-mode-group .selected')?.dataset.value || "Rounds";
         GameMode.level = parseInt(document.getElementById('vsbot-level-input')?.value || '1');
+        GameMode.nextLevel = GameMode.level; // Initialize next level to current
 
         // Reset per-player scores
         GameMode.resetScores();
@@ -1254,44 +1300,30 @@ const UI = {
       document.getElementById('controls').style.removeProperty('display');
   
       if (!GameState.quit) {
+        
         // Show final score screen with VS Bot support
         document.getElementById('game-over').style.display = 'block';
+
         const summary = GameMode.getEndgameSummary();
 
-        if (summary) {
-          // === VS Bot mode: show custom summary and save VS Bot result
-          document.getElementById('final-score').innerHTML = summary.finalScoreText;
-          document.getElementById('final-mean-score').textContent = summary.levelChangeText;
+        document.getElementById('final-score').innerHTML = summary.finalScoreText;
+        document.getElementById('final-mean-score').textContent = summary.theOtherText;
 
-          // Also update the Level input in settings panel
-          const levelInput = document.getElementById('vsbot-level-input');
-          if (levelInput) {
-            levelInput.value = GameMode.level;
-            SettingsManager.save();  // ✅ now it will persist the updated level
-          }
-        
-          ScoreManager.save(
-            0, // totalScore not used in VS Bot mode
-            GameState.gridSize,
-            GameState.movesLimit,
-            0  // mean not used in VS Bot mode
-          );
-        
-        } else {
-          // === Rounds mode: show normal total + mean
-          document.getElementById('final-score').textContent = 'Final score: ' + GameState.totalScore;
-          const mean = GameState.moves > 0
-            ? (GameState.totalScore / GameState.moves).toFixed(2)
-            : '0';
-          document.getElementById('final-mean-score').textContent = 'Mean score: ' + mean;
-        
-          ScoreManager.save(
-            GameState.totalScore,
-            GameState.gridSize,
-            GameState.movesLimit,
-            parseFloat(mean)
-          );
-        }        
+        ScoreManager.save(
+          summary.saveToScoreManager.total,
+          summary.saveToScoreManager.gridSize,
+          summary.saveToScoreManager.movesLimit,
+          summary.saveToScoreManager.mean,
+          summary.saveToScoreManager.level
+        );
+
+        SettingsManager.update({
+          gridSize: summary.saveToSettingsManager.gridSize,
+          movesLeft: summary.saveToSettingsManager.movesLimit,
+          faceSet: summary.saveToSettingsManager.faceSet,
+          gameMode: summary.saveToSettingsManager.mode,
+          botLevel: summary.saveToSettingsManager.level
+        });        
       }
 
       UI.updateGameInfoVisibility();
@@ -1384,7 +1416,7 @@ const Animation = {
 // Score Manager
 // =====================
   const ScoreManager = {
-    save(score, gridSize, movesLimit, mean) {
+    save(score, gridSize, movesLimit, mean, level) {
       const now = new Date().toISOString().split('T')[0];  // Format: YYYY-MM-DD
 
       if (GameMode.isVSBot()) {
@@ -1402,7 +1434,7 @@ const Animation = {
           human: GameMode.humanScore,
           bot: GameMode.botScore,
           diff,
-          level: GameMode.level,
+          level: level,
           movesLimit,
           date: now,
           won
@@ -1555,6 +1587,28 @@ const Animation = {
       }
     
       // ✅ Call save once to re-store cleaned values
+      SettingsManager.save();
+    },
+
+    update(options = {}) {
+      const {
+        faceSet = null,
+        gridSize = null,
+        movesLeft = null,
+        scoreDisplayMode = null,
+        submitMode = null,
+        gameMode = null,
+        botLevel = null
+      } = options;
+
+      if (faceSet !== null) SettingsManager.selectValue('face-set-group', faceSet);
+      if (gridSize !== null) SettingsManager.selectValue('grid-size-group', String(gridSize));
+      if (movesLeft !== null) document.getElementById('moves-limit').value = movesLeft;
+      if (scoreDisplayMode !== null) SettingsManager.selectValue('score-overlay-toggle-group', scoreDisplayMode);
+      if (submitMode !== null) SettingsManager.selectValue('submit-mode-group', submitMode);
+      if (gameMode !== null) SettingsManager.selectValue('game-mode-group', gameMode);
+      if (botLevel !== null) document.getElementById('vsbot-level-input').value = botLevel;
+
       SettingsManager.save();
     },
       
